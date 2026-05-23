@@ -15,13 +15,13 @@ func generateSalt() ([]byte, error) {
 	return salt, err
 }
 
+// HashPassword — hash password dengan argon2id
 func HashPassword(password string) (string, error) {
 	salt, err := generateSalt()
 	if err != nil {
 		return "", err
 	}
 
-	// time=1, memory=64MB, threads=4, keyLen=32
 	hash := argon2.IDKey([]byte(password), salt, 1, 64*1024, 4, 32)
 
 	b64Salt := base64.RawStdEncoding.EncodeToString(salt)
@@ -51,14 +51,13 @@ func VerifyPassword(password, encodedHash string) bool {
 		return false
 	}
 
-	// Hash ulang dengan salt yang sama
 	hash := argon2.IDKey([]byte(password), salt, 1, 64*1024, 4, 32)
 
 	if len(hash) != len(expectedHash) {
 		return false
 	}
 
-	// Constant time comparison — cegah timing attack
+	// Constant time comparison
 	var diff byte
 	for i := range hash {
 		diff |= hash[i] ^ expectedHash[i]

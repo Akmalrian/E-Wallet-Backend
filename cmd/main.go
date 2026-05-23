@@ -1,12 +1,9 @@
 package main
 
 import (
-	"ewallet-backend/config"
-	"ewallet-backend/internals/controllers"
-	"ewallet-backend/internals/repositories"
-	"ewallet-backend/internals/routes"
-	"ewallet-backend/internals/services"
-
+	"ewallet-backend/internal/config"
+	"ewallet-backend/internal/router"
+	"fmt"
 	"log"
 	"os"
 
@@ -15,37 +12,28 @@ import (
 )
 
 func main() {
+	// Load .env
 	if err := godotenv.Load(); err != nil {
-		log.Fatal("Failed to load .env:", err)
+		log.Fatalf("Error loading env. \ncause: %s", err.Error())
 	}
 
-	config.ConnectDatabase()
-	defer config.DB.Close()
+	// Inisialisasi gin
+	app := gin.Default()
 
-	if os.Getenv("APP_ENV") == "production" {
-		gin.SetMode(gin.ReleaseMode)
+	// Koneksi database
+	db, err := config.ConnectPsql()
+	if err != nil {
+		log.Fatalf("DB connection error. \ncause: %s", err.Error())
 	}
+	defer db.Close()
+	log.Println("DB Connected")
 
-	r := gin.Default()
+	// Setup router
+	router.InitRouter(app, db)
 
-	// ── Blacklist (untuk logout) ──
-	blacklist := repositories.NewTokenBlacklist()
-
-	// ── Repository ──
-	userRepo := repositories.NewUserRepository(config.DB)
-
-	// ── Service ──
-	authService := services.NewAuthService(userRepo, blacklist)
-	userService := services.NewUserService(userRepo)
-
-	// ── Controller ──
-	authCtrl := controllers.NewAuthController(authService)
-	userCtrl := controllers.NewUserController(userService)
-
-	// ── Routes ──
-	routes.SetupRoutes(r, blacklist, authCtrl, userCtrl)
-
-	port := os.Getenv("APP_PORT")
-	log.Printf("Server running on port %s", port)
-	r.Run(":" + port)
+	// Jalankan server
+	app.Run(fmt.Sprintf("%s:%s",
+		os.Getenv("APP_HOST"),
+		os.Getenv("APP_PORT"),
+	))
 }
