@@ -14,33 +14,32 @@ func InitRouter(app *gin.Engine, db *pgxpool.Pool) {
 	// ── Repository ──
 	userRepo := repository.NewUserRepository(db)
 	tokenRepo := repository.NewTokenRepository(db)
+	walletRepo := repository.NewWalletRepository(db)
 
 	// ── Service ──
 	authService := service.NewAuthService(userRepo, tokenRepo)
-	userService := service.NewUserService(userRepo) // ← tambah
+	userService := service.NewUserService(userRepo)
+	walletService := service.NewWalletService(walletRepo)
 
 	// ── Controller ──
 	authCtrl := controller.NewAuthController(authService)
-	userCtrl := controller.NewUserController(userService) // ← tambah
+	userCtrl := controller.NewUserController(userService)
+	walletCtrl := controller.NewWalletController(walletService)
 
 	// ── Global Middleware ──
 	app.Use(middleware.CORSMiddleware)
 
 	// ── Routes ──
-	api := app.Group("/api/v1")
 
-	// Public
-	auth := api.Group("/auth")
-	{
-		auth.POST("/register", authCtrl.Register)
-		auth.POST("/login", authCtrl.Login)
-	}
+	auth := app.Group("/auth")
 
-	// Protected
-	protected := api.Group("/")
+	auth.POST("/register", authCtrl.Register)
+	auth.POST("/login", authCtrl.Login)
+
+	protected := app.Group("/")
 	protected.Use(middleware.AuthMiddleware(tokenRepo))
-	{
-		protected.DELETE("/auth/logout", authCtrl.Logout)
-		protected.GET("/users/profile", userCtrl.GetProfile) // ← tambah
-	}
+	protected.DELETE("/auth/logout", authCtrl.Logout)
+	protected.GET("/users/profile", userCtrl.GetProfile)
+	protected.GET("/users/dashboard", walletCtrl.GetDashboardInfo)
+	protected.GET("/users/receiver", userCtrl.FindReceivers)
 }

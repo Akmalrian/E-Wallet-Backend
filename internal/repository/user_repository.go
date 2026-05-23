@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"ewallet-backend/internal/dto"
 	"ewallet-backend/internal/model"
 
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -85,4 +86,102 @@ func (u *UserRepository) CreateWallet(ctx context.Context, userID int) error {
 	sql := `INSERT INTO wallet (user_id, balance) VALUES ($1, 0)`
 	_, err := u.db.Exec(ctx, sql, userID)
 	return err
+}
+
+// FindReceivers — cari penerima transfer dengan search dan pagination
+func (u *UserRepository) FindReceivers(
+	ctx context.Context,
+	currentUserID int,
+	search string,
+	limit int,
+	offset int,
+) ([]dto.ReceiverResponse, error) {
+	sql := `
+		SELECT
+		  u.id,
+		  u.email,
+		  u.fullname,
+		  u.photo_path,
+		  u.phone_number,
+		  w.id AS wallet_id
+		FROM users u
+		JOIN wallet w ON w.user_id = u.id
+		WHERE u.id != $1
+		  AND (
+		    u.fullname     ILIKE $2
+		    OR u.phone_number ILIKE $2
+		    OR u.email      ILIKE $2
+		  )
+		ORDER BY u.fullname ASC
+		LIMIT  $3
+		OFFSET $4
+	`
+
+	// $2 = search pattern, contoh: "%akmal%"
+	searchPattern := "%" + search + "%"
+
+	rows, err := u.db.Query(ctx, sql, currentUserID, searchPattern, limit, offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var receivers []dto.ReceiverResponse
+	for rows.Next() {
+		var receiver dto.ReceiverResponse
+		if err := rows.Scan(
+			&receiver.Id,
+			&receiver.Email,
+			&receiver.Fullname,
+			&receiver.PhotoPath,
+			&receiver.PhoneNumber,
+			&receiver.WalletId,
+		); err != nil {
+			return nil, err
+		}
+		receivers = append(receivers, receiver)
+	}
+
+	return receivers, nil
+}
+
+// CountReceivers — hitung total penerima untuk pagination
+func (u *UserRepository) CountReceivers(
+	ctx context.Context,
+	currentUserID int,
+	search string,
+) (int, error) {
+	sql := `
+		SELECT COUNT(*)
+		FROM users u
+		WHERE u.id != $1
+		  AND (
+		    u.fullname     ILIKE $2
+		    OR u.phone_number ILIKE $2
+		    OR u.email      ILIKE $2
+		  )
+	`
+
+	searchPattern := "%" + search + "%"
+
+	var total int
+	err := u.db.QueryRow(ctx, sql, currentUserID, searchPattern).Scan(&total)
+	if err != nil {
+		return 0, err
+	}
+
+	return total, nil
+}
+
+// Check Pin
+func (u *UserRepository) FindPinByID(ctx context.Context, id int) (string, error) {
+	sql := `SELECT COALESCE(pin, '') FROM users WHERE id = $1`
+
+	var pin string
+	err := u.db.QueryRow(ctx, sql, id).Scan(pin)
+	if err != nil {
+		return "", err
+	}
+
+	return pin, nil
 }

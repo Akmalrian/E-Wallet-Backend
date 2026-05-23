@@ -30,3 +30,54 @@ func (u *UserService) GetProfile(ctx context.Context, id int) (dto.GetProfileRes
 		CreatedAt:   user.CreatedAt,
 	}, nil
 }
+
+// FindReceivers — cari penerima dengan search dan pagination
+func (u *UserService) FindReceivers(
+	ctx context.Context,
+	currentUserID int,
+	search string,
+	page int,
+	limit int,
+) (dto.ReceiverListResponse, error) {
+
+	// Validasi page dan limit
+	if page <= 0 {
+		page = 1
+	}
+	if limit <= 0 {
+		limit = 7
+	}
+
+	offset := (page - 1) * limit
+
+	// Ambil data receivers
+	receivers, err := u.userRepo.FindReceivers(ctx, currentUserID, search, limit, offset)
+	if err != nil {
+		return dto.ReceiverListResponse{}, err
+	}
+
+	// Jika tidak ada hasil, kembalikan slice kosong
+	if receivers == nil {
+		receivers = []dto.ReceiverResponse{}
+	}
+
+	// Hitung total data untuk pagination
+	total, err := u.userRepo.CountReceivers(ctx, currentUserID, search)
+	if err != nil {
+		return dto.ReceiverListResponse{}, err
+	}
+
+	// Hitung total halaman
+	// contoh: total=15, limit=7 → totalPages=3
+	totalPages := (total + limit - 1) / limit
+
+	return dto.ReceiverListResponse{
+		Receivers: receivers,
+		Meta: dto.PaginationMeta{
+			CurrentPage: page,
+			TotalPages:  totalPages,
+			TotalData:   total,
+			Limit:       limit,
+		},
+	}, nil
+}
