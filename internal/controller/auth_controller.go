@@ -19,7 +19,17 @@ func NewAuthController(authService *service.AuthService) *AuthController {
 	return &AuthController{authService: authService}
 }
 
-// Register POST /auth/register
+// Register godoc
+//
+//	@Summary		Register user baru
+//	@Description	Membuat akun user baru dan wallet dengan saldo 0
+//	@Tags			Auth
+//	@Accept			json
+//	@Produce		json
+//	@Param			body	body		dto.RegisterBody	true	"Register Request"
+//	@Success		201		{object}	pkg.BaseResponse
+//	@Failure		400		{object}	pkg.ErrorResponse
+//	@Router			/auth/register [post]
 func (a *AuthController) Register(ctx *gin.Context) {
 	var body dto.RegisterBody
 	if err := ctx.ShouldBindWith(&body, binding.JSON); err != nil {
@@ -48,7 +58,18 @@ func (a *AuthController) Register(ctx *gin.Context) {
 	})
 }
 
-// Login POST /auth/login
+// Login godoc
+//
+//	@Summary		Login user
+//	@Description	Login dengan email dan password, mendapatkan JWT token
+//	@Tags			Auth
+//	@Accept			json
+//	@Produce		json
+//	@Param			body	body		dto.LoginBody				true	"Login Request"
+//	@Success		200		{object}	dto.SwaggerLoginResponse	"Login berhasil"
+//	@Failure		400		{object}	pkg.ErrorResponse
+//	@Failure		401		{object}	pkg.ErrorResponse
+//	@Router			/auth/login [post]
 func (a *AuthController) Login(ctx *gin.Context) {
 	var body dto.LoginBody
 	if err := ctx.ShouldBindWith(&body, binding.JSON); err != nil {
@@ -79,9 +100,18 @@ func (a *AuthController) Login(ctx *gin.Context) {
 	})
 }
 
-// Logout DELETE /auth/logout
+// Logout godoc
+//
+//	@Summary		Logout user
+//	@Description	Logout dan hapus token dari whitelist
+//	@Tags			Auth
+//	@Produce		json
+//	@Success		200	{object}	pkg.BaseResponse
+//	@Failure		401	{object}	pkg.ErrorResponse
+//	@Failure		500	{object}	pkg.ErrorResponse
+//	@Security		BearerAuth
+//	@Router			/auth/logout [delete]
 func (a *AuthController) Logout(ctx *gin.Context) {
-	// Ambil token dari context (diset oleh AuthMiddleware)
 	token, _ := ctx.Get("token")
 
 	if err := a.authService.Logout(ctx.Request.Context(), token.(string)); err != nil {

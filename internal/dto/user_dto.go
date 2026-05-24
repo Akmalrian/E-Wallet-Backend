@@ -33,6 +33,6 @@ type ReceiverListResponse struct {
 	Meta      PaginationMeta     `json:"meta"`
 }
 
-type CheckPin struct {
-	Pin string `json:"pin" binding:"required, len=6"`
+type CheckPinBody struct {
+	Pin string `json:"pin" binding:"required,len=6,numeric"`
 }

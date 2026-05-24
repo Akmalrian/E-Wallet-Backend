@@ -2,8 +2,11 @@ package service
 
 import (
 	"context"
+	"errors"
 	"ewallet-backend/internal/dto"
 	"ewallet-backend/internal/repository"
+
+	"github.com/jackc/pgx/v5"
 )
 
 type UserService struct {
@@ -80,4 +83,22 @@ func (u *UserService) FindReceivers(
 			Limit:       limit,
 		},
 	}, nil
+}
+
+// Check Pin
+func (u *UserService) CheckPin(ctx context.Context, userID int, body dto.CheckPinBody) error {
+	pin, err := u.userRepo.FindPinByID(ctx, userID)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return errors.New("user not found")
+		}
+		return err
+	}
+	if pin == "" {
+		return errors.New("pin has not been set")
+	}
+	if pin != body.Pin {
+		return errors.New("invalid pin")
+	}
+	return nil
 }

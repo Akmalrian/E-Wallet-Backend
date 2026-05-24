@@ -1,0 +1,380 @@
+basePath: /
+definitions:
+  dto.CheckPinBody:
+    properties:
+      pin:
+        type: string
+    required:
+    - pin
+    type: object
+  dto.DashboardResponse:
+    properties:
+      balance:
+        type: number
+      total_expense:
+        type: number
+      total_income:
+        type: number
+    type: object
+  dto.GetProfileResponse:
+    properties:
+      created_at:
+        type: string
+      email:
+        type: string
+      fullname:
+        type: string
+      id:
+        type: integer
+      phone_number:
+        type: string
+      photo_path:
+        type: string
+    type: object
+  dto.LoginBody:
+    properties:
+      email:
+        type: string
+      password:
+        type: string
+    required:
+    - email
+    - password
+    type: object
+  dto.LoginResponse:
+    properties:
+      token:
+        type: string
+      user:
+        $ref: '#/definitions/dto.UserResponse'
+    type: object
+  dto.PaginationMeta:
+    properties:
+      current_page:
+        type: integer
+      limit:
+        type: integer
+      total_data:
+        type: integer
+      total_pages:
+        type: integer
+    type: object
+  dto.ReceiverListResponse:
+    properties:
+      meta:
+        $ref: '#/definitions/dto.PaginationMeta'
+      receivers:
+        items:
+          $ref: '#/definitions/dto.ReceiverResponse'
+        type: array
+    type: object
+  dto.ReceiverResponse:
+    properties:
+      email:
+        type: string
+      fullname:
+        type: string
+      id:
+        type: integer
+      phone_number:
+        type: string
+      photo_path:
+        type: string
+      wallet_id:
+        type: integer
+    type: object
+  dto.RegisterBody:
+    properties:
+      email:
+        type: string
+      password:
+        minLength: 6
+        type: string
+    required:
+    - email
+    - password
+    type: object
+  dto.SwaggerDashboardResponse:
+    properties:
+      data:
+        $ref: '#/definitions/dto.DashboardResponse'
+      message:
+        type: string
+      success:
+        type: boolean
+    type: object
+  dto.SwaggerLoginResponse:
+    properties:
+      data:
+        $ref: '#/definitions/dto.LoginResponse'
+      message:
+        type: string
+      success:
+        type: boolean
+    type: object
+  dto.SwaggerProfileResponse:
+    properties:
+      data:
+        $ref: '#/definitions/dto.GetProfileResponse'
+      message:
+        type: string
+      success:
+        type: boolean
+    type: object
+  dto.SwaggerReceiversResponse:
+    properties:
+      data:
+        $ref: '#/definitions/dto.ReceiverListResponse'
+      message:
+        type: string
+      success:
+        type: boolean
+    type: object
+  dto.UserResponse:
+    properties:
+      created_at:
+        type: string
+      email:
+        type: string
+      fullname:
+        type: string
+      id:
+        type: integer
+      phone_number:
+        type: string
+      photo_path:
+        type: string
+    type: object
+  pkg.BaseResponse:
+    properties:
+      message:
+        type: string
+      success:
+        type: boolean
+    type: object
+  pkg.ErrorResponse:
+    properties:
+      error:
+        type: string
+      message:
+        type: string
+      success:
+        type: boolean
+    type: object
+host: localhost:8080
+info:
+  contact: {}
+  description: Backend created by Koda using Gin
+  license:
+    name: MIT
+  title: Backend E-WALLET
+  version: "1.0"
+paths:
+  /auth/login:
+    post:
+      consumes:
+      - application/json
+      description: Login dengan email dan password, mendapatkan JWT token
+      parameters:
+      - description: Login Request
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.LoginBody'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Login berhasil
+          schema:
+            $ref: '#/definitions/dto.SwaggerLoginResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/pkg.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/pkg.ErrorResponse'
+      summary: Login user
+      tags:
+      - Auth
+  /auth/logout:
+    delete:
+      description: Logout dan hapus token dari whitelist
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.BaseResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/pkg.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/pkg.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Logout user
+      tags:
+      - Auth
+  /auth/register:
+    post:
+      consumes:
+      - application/json
+      description: Membuat akun user baru dan wallet dengan saldo 0
+      parameters:
+      - description: Register Request
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.RegisterBody'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/pkg.BaseResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/pkg.ErrorResponse'
+      summary: Register user baru
+      tags:
+      - Auth
+  /users/dashboard:
+    get:
+      description: Mengambil informasi dashboard (balance, total income, total expense)
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Berhasil
+          schema:
+            $ref: '#/definitions/dto.SwaggerDashboardResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/pkg.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/pkg.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/pkg.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get dashboard info
+      tags:
+      - Dashboard
+  /users/pin/check:
+    post:
+      consumes:
+      - application/json
+      description: Memverifikasi PIN user sebelum melakukan transaksi
+      parameters:
+      - description: Check PIN Request
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CheckPinBody'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.BaseResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/pkg.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/pkg.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Check PIN user
+      tags:
+      - Users
+  /users/profile:
+    get:
+      description: Mengambil data profile user yang sedang login
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Profile berhasil diambil
+          schema:
+            $ref: '#/definitions/dto.SwaggerProfileResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/pkg.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/pkg.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/pkg.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get profile user
+      tags:
+      - Users
+  /users/receivers:
+    get:
+      description: Mencari user lain sebagai penerima transfer dengan search dan pagination
+      parameters:
+      - description: Cari berdasarkan nama/email/phone
+        in: query
+        name: search
+        type: string
+      - description: 'Halaman (default: 1)'
+        in: query
+        name: page
+        type: integer
+      - description: 'Jumlah data per halaman (default: 7)'
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Berhasil
+          schema:
+            $ref: '#/definitions/dto.SwaggerReceiversResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/pkg.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/pkg.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Cari penerima transfer
+      tags:
+      - Users
+securityDefinitions:
+  ApiKeyAuth:
+    description: Bearer token used for authorization
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

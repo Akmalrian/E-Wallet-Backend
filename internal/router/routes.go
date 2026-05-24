@@ -42,4 +42,5 @@ func InitRouter(app *gin.Engine, db *pgxpool.Pool) {
 	protected.GET("/users/profile", userCtrl.GetProfile)
 	protected.GET("/users/dashboard", walletCtrl.GetDashboardInfo)
 	protected.GET("/users/receiver", userCtrl.FindReceivers)
+	protected.POST("/users/pin/check", userCtrl.CheckPin)
 }

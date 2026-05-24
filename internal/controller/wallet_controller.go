@@ -20,6 +20,18 @@ func NewWalletController(walletService *service.WalletService) *WalletController
 	return &WalletController{walletService: walletService}
 }
 
+// GetDashboard godoc
+//
+//	@Summary		Get dashboard info
+//	@Description	Mengambil informasi dashboard (balance, total income, total expense)
+//	@Tags			Dashboard
+//	@Produce		json
+//	@Success		200	{object}	dto.SwaggerDashboardResponse	"Berhasil"
+//	@Failure		401	{object}	pkg.ErrorResponse
+//	@Failure		404	{object}	pkg.ErrorResponse
+//	@Failure		500	{object}	pkg.ErrorResponse
+//	@Security		BearerAuth
+//	@Router			/users/dashboard [get]
 func (w *WalletController) GetDashboardInfo(ctx *gin.Context) {
 	token, _ := ctx.Get("claims")
 	claims := token.(pkg.Claims)

@@ -178,7 +178,7 @@ func (u *UserRepository) FindPinByID(ctx context.Context, id int) (string, error
 	sql := `SELECT COALESCE(pin, '') FROM users WHERE id = $1`
 
 	var pin string
-	err := u.db.QueryRow(ctx, sql, id).Scan(pin)
+	err := u.db.QueryRow(ctx, sql, id).Scan(&pin)
 	if err != nil {
 		return "", err
 	}
