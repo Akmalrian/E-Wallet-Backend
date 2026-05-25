@@ -72,7 +72,7 @@ func (u *UserController) GetProfile(ctx *gin.Context) {
 	})
 }
 
-// FindReceivers GET /users/receivers?search=&page=&limit=
+// FindReceivers GET /users/receiver?search=&page=&limit=
 // FindReceivers godoc
 //
 //	@Summary		Cari penerima transfer
@@ -86,7 +86,7 @@ func (u *UserController) GetProfile(ctx *gin.Context) {
 //	@Failure		401		{object}	pkg.ErrorResponse
 //	@Failure		500		{object}	pkg.ErrorResponse
 //	@Security		BearerAuth
-//	@Router			/users/receivers [get]
+//	@Router			/users/receiver [get]
 func (u *UserController) FindReceivers(ctx *gin.Context) {
 	token, _ := ctx.Get("claims")
 	claims := token.(pkg.Claims)
@@ -208,20 +208,17 @@ func (u *UserController) UpdateProfile(ctx *gin.Context) {
 		return
 	}
 
-	// Handle file upload
 	photoPath := ""
 	file, err := ctx.FormFile("photo")
 
 	if err == nil {
-		// ✅ Ada file yang diupload
-		// Validasi tipe file
+
 		allowedTypes := map[string]bool{
 			"image/jpeg": true,
 			"image/png":  true,
 			"image/jpg":  true,
 		}
 
-		// Buka file untuk cek content type
 		openedFile, err := file.Open()
 		if err != nil {
 			ctx.JSON(http.StatusInternalServerError, pkg.ErrorResponse{
@@ -233,7 +230,6 @@ func (u *UserController) UpdateProfile(ctx *gin.Context) {
 		}
 		defer openedFile.Close()
 
-		// Baca 512 byte pertama untuk deteksi content type
 		buffer := make([]byte, 512)
 		openedFile.Read(buffer)
 		contentType := http.DetectContentType(buffer)
@@ -247,7 +243,6 @@ func (u *UserController) UpdateProfile(ctx *gin.Context) {
 			return
 		}
 
-		// Validasi ukuran file (max 2MB)
 		if file.Size > 2*1024*1024 {
 			ctx.JSON(http.StatusBadRequest, pkg.ErrorResponse{
 				Message: "Bad Request",
@@ -257,7 +252,6 @@ func (u *UserController) UpdateProfile(ctx *gin.Context) {
 			return
 		}
 
-		// Buat nama file unik pakai timestamp
 		ext := filepath.Ext(file.Filename)
 		fileName := fmt.Sprintf("photo_%d_%d%s",
 			claims.Id,
@@ -265,7 +259,6 @@ func (u *UserController) UpdateProfile(ctx *gin.Context) {
 			ext,
 		)
 
-		// Pastikan folder public/uploads ada
 		uploadDir := "public/uploads"
 		if err := os.MkdirAll(uploadDir, os.ModePerm); err != nil {
 			ctx.JSON(http.StatusInternalServerError, pkg.ErrorResponse{
@@ -292,7 +285,6 @@ func (u *UserController) UpdateProfile(ctx *gin.Context) {
 		photoPath = fmt.Sprintf("/uploads/%s", fileName)
 
 	} else if err != http.ErrMissingFile {
-		// ❌ Ada error selain "file tidak ada"
 		log.Println("Error:", err.Error())
 		ctx.JSON(http.StatusBadRequest, pkg.ErrorResponse{
 			Message: "Bad Request",
@@ -301,8 +293,6 @@ func (u *UserController) UpdateProfile(ctx *gin.Context) {
 		})
 		return
 	}
-	// ✅ Jika err == http.ErrMissingFile → tidak ada file → photoPath tetap ""
-	// UpdateProfile di repository akan pakai foto lama
 
 	if err := u.userService.UpdateProfile(ctx.Request.Context(), claims.Id, body, photoPath); err != nil {
 		log.Println("Error:", err.Error())

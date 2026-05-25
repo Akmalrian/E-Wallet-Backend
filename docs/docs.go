@@ -444,7 +444,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/users/receivers": {
+        "/users/receiver": {
             "get": {
                 "security": [
                     {

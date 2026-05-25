@@ -438,7 +438,7 @@
                 }
             }
         },
-        "/users/receivers": {
+        "/users/receiver": {
             "get": {
                 "security": [
                     {
