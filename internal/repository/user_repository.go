@@ -185,3 +185,54 @@ func (u *UserRepository) FindPinByID(ctx context.Context, id int) (string, error
 
 	return pin, nil
 }
+
+// UpdateProfile — update data profile user
+func (u *UserRepository) UpdateProfile(
+	ctx context.Context,
+	id int,
+	fullname string,
+	phoneNumber string,
+	photoPath string, // ← terpisah dari body
+) error {
+	sql := `
+		UPDATE users
+		SET
+		  fullname     = $1,
+		  phone_number = $2,
+		  photo_path   = CASE WHEN $3 = '' THEN photo_path ELSE $3 END,
+		  updated_at   = NOW()
+		WHERE id = $4
+	`
+	// CASE WHEN $3 = '' THEN photo_path ELSE $3 END
+	// ← jika photo_path kosong (tidak upload file) → pakai yang lama
+	// ← jika ada → pakai yang baru
+
+	_, err := u.db.Exec(ctx, sql, fullname, phoneNumber, photoPath, id)
+	return err
+}
+
+// UpdatePassword — update password user
+func (u *UserRepository) UpdatePassword(ctx context.Context, id int, hashedPassword string) error {
+	sql := `
+		UPDATE users
+		SET
+		  password   = $1,
+		  updated_at = NOW()
+		WHERE id = $2
+	`
+	_, err := u.db.Exec(ctx, sql, hashedPassword, id)
+	return err
+}
+
+// UpdatePin — update pin user
+func (u *UserRepository) UpdatePin(ctx context.Context, id int, pin string) error {
+	sql := `
+		UPDATE users
+		SET
+		  pin        = $1,
+		  updated_at = NOW()
+		WHERE id = $2
+	`
+	_, err := u.db.Exec(ctx, sql, pin, id)
+	return err
+}

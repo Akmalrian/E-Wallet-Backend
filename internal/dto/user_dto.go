@@ -34,5 +34,20 @@ type ReceiverListResponse struct {
 }
 
 type CheckPinBody struct {
-	Pin string `json:"pin" binding:"required,len=6,numeric"`
+	Pin string `json:"pin" binding:"required,len=6"`
+}
+
+type UpdateProfileBody struct {
+	Fullname    string `form:"fullname"`
+	PhoneNumber string `form:"phone_number"`
+}
+
+type UpdatePasswordBody struct {
+	OldPassword string `json:"old_password" binding:"required"`
+	NewPassword string `json:"new_password" binding:"required,min=6"`
+}
+
+type UpdatePinBody struct {
+	OldPin string `json:"old_pin" binding:"required,len=6"`
+	NewPin string `json:"new_pin" binding:"required,len=6"`
 }

@@ -20,21 +20,19 @@ import (
 
 // @license.name				MIT
 
-// @host						localhost:8080
+// @host						localhost:9000
 // @BasePath					/
 
-// @securityDefinitions.apikey	ApiKeyAuth
-// @in							header
-// @name						Authorization
-// @description					Bearer token used for authorization
+// @securityDefinitions.apikey  BearerAuth
+// @in                          header
+// @name                        Authorization
+// @description                 Masukkan token dengan format: Bearer <token>
 
 func main() {
-	// Load .env
 	if err := godotenv.Load(); err != nil {
 		log.Fatalf("Error loading env. \ncause: %s", err.Error())
 	}
 
-	// Inisialisasi gin
 	app := gin.Default()
 
 	// Koneksi database
@@ -45,18 +43,24 @@ func main() {
 	defer db.Close()
 	log.Println("DB Connected")
 
+	// ✅ Koneksi Redis
+	rdb, err := config.ConnectRedis()
+	if err != nil {
+		log.Fatalf("Redis connection error. \ncause: %s", err.Error())
+	}
+	defer rdb.Close()
+	log.Println("Redis Connected")
+
+	// Setup swagger
 	docs.SwaggerInfo.Host = fmt.Sprintf("%s:%s",
 		os.Getenv("APP_HOST"),
 		os.Getenv("APP_PORT"),
 	)
-
-	// Route swagger UI
 	app.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
-	// Setup router
-	router.InitRouter(app, db)
+	// Setup router — pass rdb
+	router.InitRouter(app, db, rdb)
 
-	// Jalankan server
 	app.Run(fmt.Sprintf("%s:%s",
 		os.Getenv("APP_HOST"),
 		os.Getenv("APP_PORT"),

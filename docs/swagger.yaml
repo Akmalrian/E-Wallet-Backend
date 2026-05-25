@@ -130,6 +130,27 @@ definitions:
       success:
         type: boolean
     type: object
+  dto.UpdatePasswordBody:
+    properties:
+      new_password:
+        minLength: 6
+        type: string
+      old_password:
+        type: string
+    required:
+    - new_password
+    - old_password
+    type: object
+  dto.UpdatePinBody:
+    properties:
+      new_pin:
+        type: string
+      old_pin:
+        type: string
+    required:
+    - new_pin
+    - old_pin
+    type: object
   dto.UserResponse:
     properties:
       created_at:
@@ -161,7 +182,7 @@ definitions:
       success:
         type: boolean
     type: object
-host: localhost:8080
+host: localhost:9000
 info:
   contact: {}
   description: Backend created by Koda using Gin
@@ -276,6 +297,70 @@ paths:
       summary: Get dashboard info
       tags:
       - Dashboard
+  /users/password:
+    patch:
+      consumes:
+      - application/json
+      description: Memverifikasi Password user lama sebelum mengganti password baru
+      parameters:
+      - description: Update Password Request
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UpdatePasswordBody'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.BaseResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/pkg.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/pkg.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Update password user
+      tags:
+      - Users
+  /users/pin:
+    patch:
+      consumes:
+      - application/json
+      description: Mengubah PIN lama dengan varifikasi PIN yang baru
+      parameters:
+      - description: Update PIN Request
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UpdatePinBody'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.BaseResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/pkg.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/pkg.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Update PIN user
+      tags:
+      - Users
   /users/pin/check:
     post:
       consumes:
@@ -335,6 +420,47 @@ paths:
       summary: Get profile user
       tags:
       - Users
+    patch:
+      consumes:
+      - multipart/form-data
+      description: Update profile dengan atau tanpa upload foto
+      parameters:
+      - description: Nama lengkap
+        in: formData
+        name: fullname
+        type: string
+      - description: Nomor telepon
+        in: formData
+        name: phone_number
+        type: string
+      - description: Foto profile (opsional)
+        in: formData
+        name: photo
+        type: file
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.BaseResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/pkg.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/pkg.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/pkg.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Update profile user
+      tags:
+      - Users
   /users/receivers:
     get:
       description: Mencari user lain sebagai penerima transfer dengan search dan pagination
@@ -372,8 +498,8 @@ paths:
       tags:
       - Users
 securityDefinitions:
-  ApiKeyAuth:
-    description: Bearer token used for authorization
+  BearerAuth:
+    description: 'Masukkan token dengan format: Bearer <token>'
     in: header
     name: Authorization
     type: apiKey
