@@ -235,8 +235,8 @@ func (u *UserController) UpdateProfile(ctx *gin.Context) {
 		contentType := http.DetectContentType(buffer)
 
 		if !allowedTypes[contentType] {
-			ctx.JSON(http.StatusBadRequest, pkg.ErrorResponse{
-				Message: "Bad Request",
+			ctx.JSON(http.StatusUnprocessableEntity, pkg.ErrorResponse{
+				Message: "Unprocess",
 				Success: false,
 				Error:   "only jpg and png files are allowed",
 			})
@@ -244,8 +244,8 @@ func (u *UserController) UpdateProfile(ctx *gin.Context) {
 		}
 
 		if file.Size > 2*1024*1024 {
-			ctx.JSON(http.StatusBadRequest, pkg.ErrorResponse{
-				Message: "Bad Request",
+			ctx.JSON(http.StatusUnprocessableEntity, pkg.ErrorResponse{
+				Message: "Unprocess",
 				Success: false,
 				Error:   "file size must be less than 2MB",
 			})

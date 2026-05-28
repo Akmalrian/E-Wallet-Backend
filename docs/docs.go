@@ -141,6 +141,177 @@ const docTemplate = `{
                 }
             }
         },
+        "/transactions/history": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Mengambil riwayat transaksi user dengan filter dan pagination",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Transactions"
+                ],
+                "summary": "History transaksi",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Filter tipe: topup / transfer",
+                        "name": "type",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Halaman (default: 1)",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Jumlah data (default: 10)",
+                        "name": "limit",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.SwaggerHistoryResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/transactions/topup": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Menambah saldo wallet user",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Transactions"
+                ],
+                "summary": "Top up saldo",
+                "parameters": [
+                    {
+                        "description": "Topup Request",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.TopupBody"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/dto.SwaggerTopupResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/transactions/transfer": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Transfer saldo ke user lain dengan verifikasi PIN",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Transactions"
+                ],
+                "summary": "Transfer saldo",
+                "parameters": [
+                    {
+                        "description": "Transfer Request",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.TransferBody"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/dto.SwaggerTransferResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/users/dashboard": {
             "get": {
                 "security": [
@@ -171,6 +342,63 @@ const docTemplate = `{
                     },
                     "404": {
                         "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/pkg.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/users/dashboard/graph": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Mengambil data graph transaksi dengan filter type dan date range",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Dashboard"
+                ],
+                "summary": "Get dashboard graph",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Filter: income / expense / both (default: both)",
+                        "name": "type",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Tanggal mulai format: 2024-01-01 (default: 7 hari lalu)",
+                        "name": "start_date",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Tanggal akhir format: 2024-01-31 (default: hari ini)",
+                        "name": "end_date",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.SwaggerGraphResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
                         "schema": {
                             "$ref": "#/definitions/pkg.ErrorResponse"
                         }
@@ -551,6 +779,91 @@ const docTemplate = `{
                 }
             }
         },
+        "dto.GraphFilter": {
+            "type": "object",
+            "properties": {
+                "end_date": {
+                    "description": "\"2024-01-31\"",
+                    "type": "string"
+                },
+                "start_date": {
+                    "description": "\"2024-01-01\"",
+                    "type": "string"
+                },
+                "type": {
+                    "description": "\"income\", \"expense\", \"both\"",
+                    "type": "string"
+                }
+            }
+        },
+        "dto.GraphPoint": {
+            "type": "object",
+            "properties": {
+                "expense": {
+                    "description": "← total transfer",
+                    "type": "number"
+                },
+                "income": {
+                    "description": "← total topup",
+                    "type": "number"
+                },
+                "label": {
+                    "description": "← label sumbu X (tanggal/bulan)",
+                    "type": "string"
+                }
+            }
+        },
+        "dto.GraphResponse": {
+            "type": "object",
+            "properties": {
+                "filter": {
+                    "$ref": "#/definitions/dto.GraphFilter"
+                },
+                "points": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.GraphPoint"
+                    }
+                }
+            }
+        },
+        "dto.HistoryListResponse": {
+            "type": "object",
+            "properties": {
+                "meta": {
+                    "$ref": "#/definitions/dto.PaginationMeta"
+                },
+                "transactions": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.HistoryResponse"
+                    }
+                }
+            }
+        },
+        "dto.HistoryResponse": {
+            "type": "object",
+            "properties": {
+                "amount": {
+                    "type": "number"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "notes": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "type": {
+                    "type": "string"
+                }
+            }
+        },
         "dto.LoginBody": {
             "type": "object",
             "required": [
@@ -661,6 +974,34 @@ const docTemplate = `{
                 }
             }
         },
+        "dto.SwaggerGraphResponse": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "$ref": "#/definitions/dto.GraphResponse"
+                },
+                "message": {
+                    "type": "string"
+                },
+                "success": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "dto.SwaggerHistoryResponse": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "$ref": "#/definitions/dto.HistoryListResponse"
+                },
+                "message": {
+                    "type": "string"
+                },
+                "success": {
+                    "type": "boolean"
+                }
+            }
+        },
         "dto.SwaggerLoginResponse": {
             "type": "object",
             "properties": {
@@ -703,6 +1044,120 @@ const docTemplate = `{
                 }
             }
         },
+        "dto.SwaggerTopupResponse": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "$ref": "#/definitions/dto.TopupResponse"
+                },
+                "message": {
+                    "type": "string"
+                },
+                "success": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "dto.SwaggerTransferResponse": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "$ref": "#/definitions/dto.TransferResponse"
+                },
+                "message": {
+                    "type": "string"
+                },
+                "success": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "dto.TopupBody": {
+            "type": "object",
+            "required": [
+                "order_amount",
+                "payment_method_id"
+            ],
+            "properties": {
+                "order_amount": {
+                    "type": "number"
+                },
+                "payment_method_id": {
+                    "type": "integer"
+                }
+            }
+        },
+        "dto.TopupResponse": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "order_amount": {
+                    "type": "number"
+                },
+                "payment_method": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "tax_amount": {
+                    "type": "number"
+                },
+                "total_amount": {
+                    "type": "number"
+                },
+                "transaction_id": {
+                    "type": "integer"
+                }
+            }
+        },
+        "dto.TransferBody": {
+            "type": "object",
+            "required": [
+                "amount",
+                "pin",
+                "receiver_wallet_id"
+            ],
+            "properties": {
+                "amount": {
+                    "type": "number"
+                },
+                "notes": {
+                    "type": "string"
+                },
+                "pin": {
+                    "type": "string"
+                },
+                "receiver_wallet_id": {
+                    "type": "integer"
+                }
+            }
+        },
+        "dto.TransferResponse": {
+            "type": "object",
+            "properties": {
+                "amount": {
+                    "type": "number"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "notes": {
+                    "type": "string"
+                },
+                "receiver_wallet_id": {
+                    "type": "integer"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "transaction_id": {
+                    "type": "integer"
+                }
+            }
+        },
         "dto.UpdatePasswordBody": {
             "type": "object",
             "required": [
@@ -715,15 +1170,15 @@ const docTemplate = `{
                     "minLength": 6
                 },
                 "old_password": {
-                    "type": "string"
+                    "type": "string",
+                    "minLength": 6
                 }
             }
         },
         "dto.UpdatePinBody": {
             "type": "object",
             "required": [
-                "new_pin",
-                "old_pin"
+                "new_pin"
             ],
             "properties": {
                 "new_pin": {

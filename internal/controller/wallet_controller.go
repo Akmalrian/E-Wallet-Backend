@@ -64,3 +64,50 @@ func (w *WalletController) GetDashboardInfo(ctx *gin.Context) {
 		Data:    dashboard,
 	})
 }
+
+// GetGraphData godoc
+//
+//	@Summary		Get dashboard graph
+//	@Description	Mengambil data graph transaksi dengan filter type dan date range
+//	@Tags			Dashboard
+//	@Produce		json
+//	@Param			type		query		string	false	"Filter: income / expense / both (default: both)"
+//	@Param			start_date	query		string	false	"Tanggal mulai format: 2024-01-01 (default: 7 hari lalu)"
+//	@Param			end_date	query		string	false	"Tanggal akhir format: 2024-01-31 (default: hari ini)"
+//	@Success		200			{object}	dto.SwaggerGraphResponse
+//	@Failure		401			{object}	pkg.ErrorResponse
+//	@Failure		500			{object}	pkg.ErrorResponse
+//	@Security		BearerAuth
+//	@Router			/users/dashboard/graph [get]
+func (w *WalletController) GetGraphData(ctx *gin.Context) {
+	token, _ := ctx.Get("claims")
+	claims := token.(pkg.Claims)
+
+	// Ambil query params
+	graphType := ctx.DefaultQuery("type", "both")
+	startDate := ctx.DefaultQuery("start_date", "")
+	endDate := ctx.DefaultQuery("end_date", "")
+
+	result, err := w.walletService.GetGraphData(
+		ctx.Request.Context(),
+		claims.Id,
+		graphType,
+		startDate,
+		endDate,
+	)
+	if err != nil {
+		log.Println("Error:", err.Error())
+		ctx.JSON(http.StatusInternalServerError, pkg.ErrorResponse{
+			Message: "Internal Error",
+			Success: false,
+			Error:   "internal server error",
+		})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, pkg.Response[dto.GraphResponse]{
+		Message: "OK",
+		Success: true,
+		Data:    result,
+	})
+}

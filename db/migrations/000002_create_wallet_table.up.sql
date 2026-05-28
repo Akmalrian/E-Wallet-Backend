@@ -1,4 +1,4 @@
-CREATE TABLE wallet (
+CREATE TABLE IF NOT EXISTS wallet (
   id         SERIAL PRIMARY KEY,
   user_id    INT NOT NULL UNIQUE,
   balance    DECIMAL(15,2) NOT NULL DEFAULT 0,

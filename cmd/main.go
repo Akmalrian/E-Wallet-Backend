@@ -43,7 +43,7 @@ func main() {
 	defer db.Close()
 	log.Println("DB Connected")
 
-	// ✅ Koneksi Redis
+	// Koneksi Redis
 	rdb, err := config.ConnectRedis()
 	if err != nil {
 		log.Fatalf("Redis connection error. \ncause: %s", err.Error())

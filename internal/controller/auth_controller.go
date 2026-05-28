@@ -44,8 +44,8 @@ func (a *AuthController) Register(ctx *gin.Context) {
 
 	if err := a.authService.Register(ctx.Request.Context(), body); err != nil {
 		log.Println("Error:", err.Error())
-		ctx.JSON(http.StatusBadRequest, pkg.ErrorResponse{
-			Message: "Bad Request",
+		ctx.JSON(http.StatusConflict, pkg.ErrorResponse{
+			Message: "Error",
 			Success: false,
 			Error:   err.Error(),
 		})

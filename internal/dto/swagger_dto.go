@@ -24,12 +24,3 @@ type SwaggerReceiversResponse struct {
 	Success bool                 `json:"success"`
 	Data    ReceiverListResponse `json:"data"`
 }
-
-// ── Dashboard Swagger Response ────────────────────────
-
-// SwaggerDashboardResponse — response dashboard untuk swagger docs
-type SwaggerDashboardResponse struct {
-	Message string            `json:"message"`
-	Success bool              `json:"success"`
-	Data    DashboardResponse `json:"data"`
-}

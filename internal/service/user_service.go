@@ -29,17 +29,14 @@ func NewUserService(userRepo *repository.UserRepository, rdb *redis.Client) *Use
 
 // GetProfile — ambil profile dengan cache
 func (u *UserService) GetProfile(ctx context.Context, id int) (dto.GetProfileResponse, error) {
-	// Key cache unik per user
 	cacheKey := fmt.Sprintf("user:profile:%d", id)
 
-	// Cek cache dulu
 	var cached dto.GetProfileResponse
 	if hit := cache.Get(ctx, u.rdb, cacheKey, &cached); hit {
 		log.Println("profile: cache hit")
 		return cached, nil
 	}
 
-	// Cache miss → query database
 	log.Println("profile: cache miss")
 	user, err := u.userRepo.FindByID(ctx, id)
 	if err != nil {
@@ -55,7 +52,6 @@ func (u *UserService) GetProfile(ctx context.Context, id int) (dto.GetProfileRes
 		CreatedAt:   user.CreatedAt,
 	}
 
-	// Simpan ke cache selama 5 menit
 	cache.Set(ctx, u.rdb, cacheKey, result, 5*time.Minute)
 
 	return result, nil
@@ -145,16 +141,14 @@ func (u *UserService) CheckPin(ctx context.Context, userID int, body dto.CheckPi
 		return errors.New("pin has not been set")
 	}
 
-	if pin != body.Pin {
+	if !pkg.VerifyPassword(body.Pin, pin) {
 		return errors.New("invalid pin")
 	}
-
 	return nil
 }
 
 // UpdatePassword — update password user
 func (u *UserService) UpdatePassword(ctx context.Context, id int, body dto.UpdatePasswordBody) error {
-	// Ambil data user
 	user, err := u.userRepo.FindByID(ctx, id)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -163,17 +157,14 @@ func (u *UserService) UpdatePassword(ctx context.Context, id int, body dto.Updat
 		return err
 	}
 
-	// Verifikasi password lama
 	if !pkg.VerifyPassword(body.OldPassword, user.Password) {
 		return errors.New("old password is incorrect")
 	}
 
-	// Cek password baru tidak sama dengan password lama
 	if body.OldPassword == body.NewPassword {
 		return errors.New("new password must be different from old password")
 	}
 
-	// Hash password baru
 	hashedPassword, err := pkg.HashPassword(body.NewPassword)
 	if err != nil {
 		return err
@@ -184,7 +175,7 @@ func (u *UserService) UpdatePassword(ctx context.Context, id int, body dto.Updat
 
 // UpdatePin — update PIN user
 func (u *UserService) UpdatePin(ctx context.Context, id int, body dto.UpdatePinBody) error {
-	// Ambil PIN saat ini
+
 	currentPin, err := u.userRepo.FindPinByID(ctx, id)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -193,17 +184,19 @@ func (u *UserService) UpdatePin(ctx context.Context, id int, body dto.UpdatePinB
 		return err
 	}
 
-	// Jika user sudah punya PIN, verifikasi PIN lama
 	if currentPin != "" {
-		if currentPin != body.OldPin {
+		if !pkg.VerifyPassword(body.OldPin, currentPin) {
 			return errors.New("old pin is incorrect")
 		}
 
-		// Cek PIN baru tidak sama dengan PIN lama
-		if body.OldPin == body.NewPin {
+		if !pkg.VerifyPassword(body.NewPin, currentPin) {
 			return errors.New("new pin must be different from old pin")
 		}
-	}
 
-	return u.userRepo.UpdatePin(ctx, id, body.NewPin)
+	}
+	hashedPin, err := pkg.HashPassword(body.NewPin)
+	if err != nil {
+		return err
+	}
+	return u.userRepo.UpdatePin(ctx, id, hashedPin)
 }

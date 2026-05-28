@@ -31,6 +31,63 @@ definitions:
       photo_path:
         type: string
     type: object
+  dto.GraphFilter:
+    properties:
+      end_date:
+        description: '"2024-01-31"'
+        type: string
+      start_date:
+        description: '"2024-01-01"'
+        type: string
+      type:
+        description: '"income", "expense", "both"'
+        type: string
+    type: object
+  dto.GraphPoint:
+    properties:
+      expense:
+        description: ← total transfer
+        type: number
+      income:
+        description: ← total topup
+        type: number
+      label:
+        description: ← label sumbu X (tanggal/bulan)
+        type: string
+    type: object
+  dto.GraphResponse:
+    properties:
+      filter:
+        $ref: '#/definitions/dto.GraphFilter'
+      points:
+        items:
+          $ref: '#/definitions/dto.GraphPoint'
+        type: array
+    type: object
+  dto.HistoryListResponse:
+    properties:
+      meta:
+        $ref: '#/definitions/dto.PaginationMeta'
+      transactions:
+        items:
+          $ref: '#/definitions/dto.HistoryResponse'
+        type: array
+    type: object
+  dto.HistoryResponse:
+    properties:
+      amount:
+        type: number
+      created_at:
+        type: string
+      id:
+        type: integer
+      notes:
+        type: string
+      status:
+        type: string
+      type:
+        type: string
+    type: object
   dto.LoginBody:
     properties:
       email:
@@ -103,6 +160,24 @@ definitions:
       success:
         type: boolean
     type: object
+  dto.SwaggerGraphResponse:
+    properties:
+      data:
+        $ref: '#/definitions/dto.GraphResponse'
+      message:
+        type: string
+      success:
+        type: boolean
+    type: object
+  dto.SwaggerHistoryResponse:
+    properties:
+      data:
+        $ref: '#/definitions/dto.HistoryListResponse'
+      message:
+        type: string
+      success:
+        type: boolean
+    type: object
   dto.SwaggerLoginResponse:
     properties:
       data:
@@ -130,12 +205,88 @@ definitions:
       success:
         type: boolean
     type: object
+  dto.SwaggerTopupResponse:
+    properties:
+      data:
+        $ref: '#/definitions/dto.TopupResponse'
+      message:
+        type: string
+      success:
+        type: boolean
+    type: object
+  dto.SwaggerTransferResponse:
+    properties:
+      data:
+        $ref: '#/definitions/dto.TransferResponse'
+      message:
+        type: string
+      success:
+        type: boolean
+    type: object
+  dto.TopupBody:
+    properties:
+      order_amount:
+        type: number
+      payment_method_id:
+        type: integer
+    required:
+    - order_amount
+    - payment_method_id
+    type: object
+  dto.TopupResponse:
+    properties:
+      created_at:
+        type: string
+      order_amount:
+        type: number
+      payment_method:
+        type: string
+      status:
+        type: string
+      tax_amount:
+        type: number
+      total_amount:
+        type: number
+      transaction_id:
+        type: integer
+    type: object
+  dto.TransferBody:
+    properties:
+      amount:
+        type: number
+      notes:
+        type: string
+      pin:
+        type: string
+      receiver_wallet_id:
+        type: integer
+    required:
+    - amount
+    - pin
+    - receiver_wallet_id
+    type: object
+  dto.TransferResponse:
+    properties:
+      amount:
+        type: number
+      created_at:
+        type: string
+      notes:
+        type: string
+      receiver_wallet_id:
+        type: integer
+      status:
+        type: string
+      transaction_id:
+        type: integer
+    type: object
   dto.UpdatePasswordBody:
     properties:
       new_password:
         minLength: 6
         type: string
       old_password:
+        minLength: 6
         type: string
     required:
     - new_password
@@ -149,7 +300,6 @@ definitions:
         type: string
     required:
     - new_pin
-    - old_pin
     type: object
   dto.UserResponse:
     properties:
@@ -270,6 +420,114 @@ paths:
       summary: Register user baru
       tags:
       - Auth
+  /transactions/history:
+    get:
+      description: Mengambil riwayat transaksi user dengan filter dan pagination
+      parameters:
+      - description: 'Filter tipe: topup / transfer'
+        in: query
+        name: type
+        type: string
+      - description: 'Halaman (default: 1)'
+        in: query
+        name: page
+        type: integer
+      - description: 'Jumlah data (default: 10)'
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.SwaggerHistoryResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/pkg.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/pkg.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: History transaksi
+      tags:
+      - Transactions
+  /transactions/topup:
+    post:
+      consumes:
+      - application/json
+      description: Menambah saldo wallet user
+      parameters:
+      - description: Topup Request
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.TopupBody'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/dto.SwaggerTopupResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/pkg.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/pkg.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/pkg.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Top up saldo
+      tags:
+      - Transactions
+  /transactions/transfer:
+    post:
+      consumes:
+      - application/json
+      description: Transfer saldo ke user lain dengan verifikasi PIN
+      parameters:
+      - description: Transfer Request
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.TransferBody'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/dto.SwaggerTransferResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/pkg.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/pkg.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/pkg.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Transfer saldo
+      tags:
+      - Transactions
   /users/dashboard:
     get:
       description: Mengambil informasi dashboard (balance, total income, total expense)
@@ -295,6 +553,42 @@ paths:
       security:
       - BearerAuth: []
       summary: Get dashboard info
+      tags:
+      - Dashboard
+  /users/dashboard/graph:
+    get:
+      description: Mengambil data graph transaksi dengan filter type dan date range
+      parameters:
+      - description: 'Filter: income / expense / both (default: both)'
+        in: query
+        name: type
+        type: string
+      - description: 'Tanggal mulai format: 2024-01-01 (default: 7 hari lalu)'
+        in: query
+        name: start_date
+        type: string
+      - description: 'Tanggal akhir format: 2024-01-31 (default: hari ini)'
+        in: query
+        name: end_date
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.SwaggerGraphResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/pkg.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/pkg.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get dashboard graph
       tags:
       - Dashboard
   /users/password:

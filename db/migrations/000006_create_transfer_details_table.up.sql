@@ -1,4 +1,4 @@
-CREATE TABLE transfer_details (
+CREATE TABLE IF NOT EXISTS transfer_details (
   id                 SERIAL PRIMARY KEY,
   transaction_id     INT NOT NULL UNIQUE,
   sender_wallet_id   INT NOT NULL,

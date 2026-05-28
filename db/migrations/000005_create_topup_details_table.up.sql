@@ -1,4 +1,4 @@
-CREATE TABLE topup_details (
+CREATE TABLE IF NOT EXISTS topup_details (
   id                SERIAL PRIMARY KEY,
   transaction_id    INT NOT NULL UNIQUE,
   wallet_id         INT NOT NULL,

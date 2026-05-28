@@ -17,16 +17,19 @@ func InitRouter(app *gin.Engine, db *pgxpool.Pool, rdb *redis.Client) {
 	userRepo := repository.NewUserRepository(db)
 	tokenRepo := repository.NewTokenRepository(db)
 	walletRepo := repository.NewWalletRepository(db)
+	transactionRepo := repository.NewTransactionRepository(db)
 
 	// ── Service ──
 	authService := service.NewAuthService(userRepo, tokenRepo)
 	userService := service.NewUserService(userRepo, rdb)
 	walletService := service.NewWalletService(walletRepo, rdb)
+	transactionService := service.NewTransactionService(transactionRepo, userRepo)
 
 	// ── Controller ──
 	authCtrl := controller.NewAuthController(authService)
 	userCtrl := controller.NewUserController(userService)
 	walletCtrl := controller.NewWalletController(walletService)
+	transactionCtrl := controller.NewTransactionController(transactionService)
 
 	// ── Global Middleware ──
 	app.Use(middleware.CORSMiddleware)
@@ -43,9 +46,14 @@ func InitRouter(app *gin.Engine, db *pgxpool.Pool, rdb *redis.Client) {
 	protected.DELETE("/auth/logout", authCtrl.Logout)
 	protected.GET("/users/profile", userCtrl.GetProfile)
 	protected.GET("/users/dashboard", walletCtrl.GetDashboardInfo)
+	protected.GET("/users/dashboard/graph", walletCtrl.GetGraphData)
 	protected.GET("/users/receiver", userCtrl.FindReceivers)
 	protected.PATCH("/users/profile", userCtrl.UpdateProfile)
 	protected.PATCH("/users/password", userCtrl.UpdatePassword)
 	protected.PATCH("/users/pin", userCtrl.UpdatePin)
 	protected.POST("/users/pin/check", userCtrl.CheckPin)
+
+	protected.POST("/transactions/topup", transactionCtrl.CreateTopup)
+	protected.POST("/transactions/transfer", transactionCtrl.CreateTransfer)
+	protected.GET("/transactions/history", transactionCtrl.GetHistory)
 }

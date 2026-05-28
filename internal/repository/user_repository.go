@@ -192,20 +192,17 @@ func (u *UserRepository) UpdateProfile(
 	id int,
 	fullname string,
 	phoneNumber string,
-	photoPath string, // ← terpisah dari body
+	photoPath string,
 ) error {
 	sql := `
 		UPDATE users
 		SET
-		  fullname     = $1,
-		  phone_number = $2,
+		  fullname     = CASE WHEN $1 = '' THEN fullname ELSE $1 END,
+		  phone_number = CASE WHEN $2 = '' THEN phone_number ELSE $2 END,
 		  photo_path   = CASE WHEN $3 = '' THEN photo_path ELSE $3 END,
 		  updated_at   = NOW()
 		WHERE id = $4
 	`
-	// CASE WHEN $3 = '' THEN photo_path ELSE $3 END
-	// ← jika photo_path kosong (tidak upload file) → pakai yang lama
-	// ← jika ada → pakai yang baru
 
 	_, err := u.db.Exec(ctx, sql, fullname, phoneNumber, photoPath, id)
 	return err

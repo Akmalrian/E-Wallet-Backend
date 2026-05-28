@@ -23,11 +23,9 @@ func Set(ctx context.Context, rdb *redis.Client, key string, value any, ttl time
 }
 
 // Get — ambil data dari Redis
-// return false jika cache miss
 func Get(ctx context.Context, rdb *redis.Client, key string, dest any) bool {
 	data, err := rdb.Get(ctx, key).Result()
 	if err != nil {
-		// err == redis.Nil artinya cache miss (tidak ada data)
 		if err != redis.Nil {
 			log.Println("Cache get error:", err.Error())
 		}

@@ -43,11 +43,11 @@ type UpdateProfileBody struct {
 }
 
 type UpdatePasswordBody struct {
-	OldPassword string `json:"old_password" binding:"required"`
+	OldPassword string `json:"old_password" binding:"required,min=6"`
 	NewPassword string `json:"new_password" binding:"required,min=6"`
 }
 
 type UpdatePinBody struct {
-	OldPin string `json:"old_pin" binding:"required,len=6"`
-	NewPin string `json:"new_pin" binding:"required,len=6"`
+	OldPin string `json:"old_pin"`
+	NewPin string `json:"new_pin" binding:"required"`
 }
