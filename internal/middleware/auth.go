@@ -1,7 +1,6 @@
 package middleware
 
 import (
-	"context"
 	"ewallet-backend/internal/repository"
 	"ewallet-backend/pkg"
 	"net/http"
@@ -10,7 +9,6 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// AuthMiddleware — validasi JWT token
 func AuthMiddleware(tokenRepo *repository.TokenRepository) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		authHeader := ctx.GetHeader("Authorization")
@@ -37,8 +35,8 @@ func AuthMiddleware(tokenRepo *repository.TokenRepository) gin.HandlerFunc {
 
 		tokenString := parts[1]
 
-		// Cek whitelist di database
-		isValid, err := tokenRepo.IsWhitelisted(context.Background(), tokenString)
+		// ✅ Cek token di Redis
+		isValid, err := tokenRepo.IsWhitelisted(ctx.Request.Context(), tokenString)
 		if err != nil || !isValid {
 			ctx.JSON(http.StatusUnauthorized, pkg.ErrorResponse{
 				Message: "Unauthorized",
@@ -49,7 +47,7 @@ func AuthMiddleware(tokenRepo *repository.TokenRepository) gin.HandlerFunc {
 			return
 		}
 
-		// Parse token
+		// Parse token untuk ambil claims
 		claims, err := pkg.ParseToken(tokenString)
 		if err != nil {
 			ctx.JSON(http.StatusUnauthorized, pkg.ErrorResponse{
@@ -61,7 +59,6 @@ func AuthMiddleware(tokenRepo *repository.TokenRepository) gin.HandlerFunc {
 			return
 		}
 
-		// Simpan claims ke context — sama persis dengan referensi
 		ctx.Set("claims", claims)
 		ctx.Set("token", tokenString)
 

@@ -14,12 +14,3 @@ type User struct {
 	CreatedAt   time.Time
 	UpdatedAt   time.Time
 }
-
-// UserToken — representasi tabel user_tokens di database
-type UserToken struct {
-	Id        int
-	UserId    int
-	Token     string
-	ExpiredAt time.Time
-	CreatedAt time.Time
-}

@@ -2,48 +2,56 @@ package repository
 
 import (
 	"context"
+	"fmt"
 	"time"
 
-	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/redis/go-redis/v9"
 )
 
 type TokenRepository struct {
-	db *pgxpool.Pool
+	rdb *redis.Client
 }
 
-func NewTokenRepository(db *pgxpool.Pool) *TokenRepository {
-	return &TokenRepository{db: db}
+func NewTokenRepository(rdb *redis.Client) *TokenRepository {
+	return &TokenRepository{rdb: rdb}
 }
 
-// Add — simpan token ke database saat login
+func tokenKey(token string) string {
+	return fmt.Sprintf("token:%s", token)
+}
+
+// Add — simpan token ke Redis saat login
+// TTL = durasi expired token (otomatis terhapus saat expired)
 func (t *TokenRepository) Add(ctx context.Context, userID int, token string, expiredAt time.Time) error {
-	sql := `
-		INSERT INTO user_tokens (user_id, token, expired_at)
-		VALUES ($1, $2, $3)
-	`
-	_, err := t.db.Exec(ctx, sql, userID, token, expiredAt)
-	return err
+	ttl := time.Until(expiredAt)
+
+	return t.rdb.Set(ctx,
+		tokenKey(token),
+		userID,
+		ttl,
+	).Err()
 }
 
-// Remove — hapus token saat logout
+// Remove — hapus token dari Redis saat logout
 func (t *TokenRepository) Remove(ctx context.Context, token string) error {
-	sql := `DELETE FROM user_tokens WHERE token = $1`
-	_, err := t.db.Exec(ctx, sql, token)
-	return err
+	return t.rdb.Del(ctx, tokenKey(token)).Err()
 }
 
-// IsWhitelisted — cek apakah token aktif di database
+// IsWhitelisted — cek apakah token ada di Redis
 func (t *TokenRepository) IsWhitelisted(ctx context.Context, token string) (bool, error) {
-	sql := `
-		SELECT COUNT(*)
-		FROM user_tokens
-		WHERE token      = $1
-		  AND expired_at > NOW()
-	`
-	var count int
-	err := t.db.QueryRow(ctx, sql, token).Scan(&count)
+	result, err := t.rdb.Exists(ctx, tokenKey(token)).Result()
 	if err != nil {
 		return false, err
 	}
-	return count > 0, nil
+	// result = 1 jika ada, 0 jika tidak ada
+	return result == 1, nil
+}
+
+// GetUserID — ambil userID dari token di Redis
+func (t *TokenRepository) GetUserID(ctx context.Context, token string) (int, error) {
+	val, err := t.rdb.Get(ctx, tokenKey(token)).Int()
+	if err != nil {
+		return 0, err
+	}
+	return val, nil
 }

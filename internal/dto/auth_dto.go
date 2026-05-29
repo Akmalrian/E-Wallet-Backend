@@ -14,6 +14,22 @@ type LoginBody struct {
 	Password string `json:"password" binding:"required"`
 }
 
+// ForgotPasswordBody — step 1: verifikasi email
+type ForgotPasswordBody struct {
+	Email string `json:"email" binding:"required,email"`
+}
+
+// ResetPasswordBody — step 2: ganti password
+type ResetPasswordBody struct {
+	Email       string `json:"email"        binding:"required,email"`
+	NewPassword string `json:"new_password" binding:"required,min=6"`
+}
+
+// EnterPinBody — request body untuk set PIN pertama kali
+type EnterPinBody struct {
+	Pin string `json:"pin" binding:"required,len=6"`
+}
+
 // ── Response ─────────────────────────────────
 
 type UserResponse struct {

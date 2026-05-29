@@ -200,3 +200,39 @@ func (u *UserService) UpdatePin(ctx context.Context, id int, body dto.UpdatePinB
 	}
 	return u.userRepo.UpdatePin(ctx, id, hashedPin)
 }
+
+// ForgotPassword — step 1: verifikasi email
+func (a *AuthService) ForgotPassword(ctx context.Context, body dto.ForgotPasswordBody) error {
+	// Cek apakah email terdaftar
+	_, err := a.userRepo.FindByEmail(ctx, body.Email)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return errors.New("email not found")
+		}
+		return err
+	}
+
+	// Email valid → bisa lanjut ke step 2
+	return nil
+}
+
+// ResetPassword — step 2: ganti password baru
+func (a *AuthService) ResetPassword(ctx context.Context, body dto.ResetPasswordBody) error {
+	// Cek ulang apakah email masih valid
+	_, err := a.userRepo.FindByEmail(ctx, body.Email)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return errors.New("email not found")
+		}
+		return err
+	}
+
+	// Hash password baru
+	hashedPassword, err := pkg.HashPassword(body.NewPassword)
+	if err != nil {
+		return err
+	}
+
+	// Update password di database
+	return a.userRepo.UpdatePasswordByEmail(ctx, body.Email, hashedPassword)
+}

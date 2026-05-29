@@ -4,8 +4,6 @@ import (
 	"time"
 )
 
-// ── Request ──────────────────────────────────
-
 // TopupBody — request body untuk topup
 type TopupBody struct {
 	PaymentMethodId int     `json:"payment_method_id" binding:"required"`
@@ -19,8 +17,6 @@ type TransferBody struct {
 	Pin              string  `json:"pin"                binding:"required,len=6"`
 	Notes            string  `json:"notes"`
 }
-
-// ── Response ─────────────────────────────────
 
 // TransactionResponse — response data transaksi
 type TransactionResponse struct {
@@ -67,8 +63,6 @@ type HistoryListResponse struct {
 	Transactions []HistoryResponse `json:"transactions"`
 	Meta         PaginationMeta    `json:"meta"`
 }
-
-// ── Swagger Response ─────────────────────────
 
 type SwaggerTopupResponse struct {
 	Message string        `json:"message"`

@@ -233,3 +233,20 @@ func (u *UserRepository) UpdatePin(ctx context.Context, id int, pin string) erro
 	_, err := u.db.Exec(ctx, sql, pin, id)
 	return err
 }
+
+// UpdatePasswordByEmail — update password berdasarkan email
+func (u *UserRepository) UpdatePasswordByEmail(
+	ctx context.Context,
+	email string,
+	hashedPassword string,
+) error {
+	sql := `
+		UPDATE users
+		SET
+		  password   = $1,
+		  updated_at = NOW()
+		WHERE email = $2
+	`
+	_, err := u.db.Exec(ctx, sql, hashedPassword, email)
+	return err
+}

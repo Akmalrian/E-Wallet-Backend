@@ -129,3 +129,97 @@ func (a *AuthController) Logout(ctx *gin.Context) {
 		Success: true,
 	})
 }
+
+// ForgotPassword godoc
+//
+//	@Summary		Verifikasi email forgot password
+//	@Description	Step 1 forgot password - verifikasi apakah email terdaftar
+//	@Tags			Auth
+//	@Accept			json
+//	@Produce		json
+//	@Param			body	body		dto.ForgotPasswordBody	true	"Email Request"
+//	@Success		200		{object}	pkg.BaseResponse
+//	@Failure		400		{object}	pkg.ErrorResponse
+//	@Failure		404		{object}	pkg.ErrorResponse
+//	@Router			/auth/forgot-password [post]
+func (a *AuthController) ForgotPassword(ctx *gin.Context) {
+	var body dto.ForgotPasswordBody
+	if err := ctx.ShouldBindWith(&body, binding.JSON); err != nil {
+		log.Println("Error:", err.Error())
+		ctx.JSON(http.StatusBadRequest, pkg.ErrorResponse{
+			Message: "Bad Request",
+			Success: false,
+			Error:   err.Error(),
+		})
+		return
+	}
+
+	if err := a.authService.ForgotPassword(ctx.Request.Context(), body); err != nil {
+		log.Println("Error:", err.Error())
+
+		// Tentukan status code
+		statusCode := http.StatusInternalServerError
+		if err.Error() == "email not found" {
+			statusCode = http.StatusNotFound
+		}
+
+		ctx.JSON(statusCode, pkg.ErrorResponse{
+			Message: "Failed",
+			Success: false,
+			Error:   err.Error(),
+		})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, pkg.BaseResponse{
+		Message: "Email verified. You can now reset your password.",
+		Success: true,
+	})
+}
+
+// ResetPassword godoc
+//
+//	@Summary		Reset password baru
+//	@Description	Step 2 forgot password - ganti password dengan yang baru
+//	@Tags			Auth
+//	@Accept			json
+//	@Produce		json
+//	@Param			body	body		dto.ResetPasswordBody	true	"Reset Password Request"
+//	@Success		200		{object}	pkg.BaseResponse
+//	@Failure		400		{object}	pkg.ErrorResponse
+//	@Failure		404		{object}	pkg.ErrorResponse
+//	@Failure		500		{object}	pkg.ErrorResponse
+//	@Router			/auth/reset-password [post]
+func (a *AuthController) ResetPassword(ctx *gin.Context) {
+	var body dto.ResetPasswordBody
+	if err := ctx.ShouldBindWith(&body, binding.JSON); err != nil {
+		log.Println("Error:", err.Error())
+		ctx.JSON(http.StatusBadRequest, pkg.ErrorResponse{
+			Message: "Bad Request",
+			Success: false,
+			Error:   err.Error(),
+		})
+		return
+	}
+
+	if err := a.authService.ResetPassword(ctx.Request.Context(), body); err != nil {
+		log.Println("Error:", err.Error())
+
+		statusCode := http.StatusInternalServerError
+		if err.Error() == "email not found" {
+			statusCode = http.StatusNotFound
+		}
+
+		ctx.JSON(statusCode, pkg.ErrorResponse{
+			Message: "Failed",
+			Success: false,
+			Error:   err.Error(),
+		})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, pkg.BaseResponse{
+		Message: "Password reset successfully. Please login with your new password.",
+		Success: true,
+	})
+}

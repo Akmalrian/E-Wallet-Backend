@@ -15,7 +15,7 @@ func InitRouter(app *gin.Engine, db *pgxpool.Pool, rdb *redis.Client) {
 	app.Static("/uploads", "./public/uploads")
 	// ── Repository ──
 	userRepo := repository.NewUserRepository(db)
-	tokenRepo := repository.NewTokenRepository(db)
+	tokenRepo := repository.NewTokenRepository(rdb)
 	walletRepo := repository.NewWalletRepository(db)
 	transactionRepo := repository.NewTransactionRepository(db)
 
@@ -40,6 +40,8 @@ func InitRouter(app *gin.Engine, db *pgxpool.Pool, rdb *redis.Client) {
 
 	auth.POST("/register", authCtrl.Register)
 	auth.POST("/login", authCtrl.Login)
+	auth.POST("/forgot-password", authCtrl.ForgotPassword)
+	auth.POST("/reset-password", authCtrl.ResetPassword)
 
 	protected := app.Group("/")
 	protected.Use(middleware.AuthMiddleware(tokenRepo))
