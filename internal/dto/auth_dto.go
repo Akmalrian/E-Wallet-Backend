@@ -42,6 +42,7 @@ type UserResponse struct {
 }
 
 type LoginResponse struct {
-	Token string       `json:"token"`
-	User  UserResponse `json:"user"`
+	Token  string       `json:"token"`
+	HasPin bool         `json:"has_pin"`
+	User   UserResponse `json:"user"`
 }

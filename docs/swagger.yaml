@@ -16,6 +16,20 @@ definitions:
       total_income:
         type: number
     type: object
+  dto.EnterPinBody:
+    properties:
+      pin:
+        type: string
+    required:
+    - pin
+    type: object
+  dto.ForgotPasswordBody:
+    properties:
+      email:
+        type: string
+    required:
+    - email
+    type: object
   dto.GetProfileResponse:
     properties:
       created_at:
@@ -83,6 +97,8 @@ definitions:
         type: integer
       notes:
         type: string
+      sender_info:
+        $ref: '#/definitions/dto.SenderInfo'
       status:
         type: string
       type:
@@ -100,6 +116,8 @@ definitions:
     type: object
   dto.LoginResponse:
     properties:
+      has_pin:
+        type: boolean
       token:
         type: string
       user:
@@ -150,6 +168,26 @@ definitions:
     required:
     - email
     - password
+    type: object
+  dto.ResetPasswordBody:
+    properties:
+      email:
+        type: string
+      new_password:
+        minLength: 6
+        type: string
+    required:
+    - email
+    - new_password
+    type: object
+  dto.SenderInfo:
+    properties:
+      fullname:
+        type: string
+      phone_number:
+        type: string
+      wallet_id:
+        type: integer
     type: object
   dto.SwaggerDashboardResponse:
     properties:
@@ -341,6 +379,68 @@ info:
   title: Backend E-WALLET
   version: "1.0"
 paths:
+  /auth/enter-pin:
+    post:
+      consumes:
+      - application/json
+      description: 'Set PIN setelah login pertama kali (has_pin: false)'
+      parameters:
+      - description: Enter PIN Request
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.EnterPinBody'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.BaseResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/pkg.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/pkg.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Set PIN pertama kali
+      tags:
+      - Auth
+  /auth/forgot-password:
+    post:
+      consumes:
+      - application/json
+      description: Step 1 forgot password - verifikasi apakah email terdaftar
+      parameters:
+      - description: Email Request
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.ForgotPasswordBody'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.BaseResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/pkg.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/pkg.ErrorResponse'
+      summary: Verifikasi email forgot password
+      tags:
+      - Auth
   /auth/login:
     post:
       consumes:
@@ -418,6 +518,40 @@ paths:
           schema:
             $ref: '#/definitions/pkg.ErrorResponse'
       summary: Register user baru
+      tags:
+      - Auth
+  /auth/reset-password:
+    post:
+      consumes:
+      - application/json
+      description: Step 2 forgot password - ganti password dengan yang baru
+      parameters:
+      - description: Reset Password Request
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.ResetPasswordBody'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pkg.BaseResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/pkg.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/pkg.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/pkg.ErrorResponse'
+      summary: Reset password baru
       tags:
       - Auth
   /transactions/history:

@@ -223,3 +223,54 @@ func (a *AuthController) ResetPassword(ctx *gin.Context) {
 		Success: true,
 	})
 }
+
+// EnterPin godoc
+//
+//	@Summary		Set PIN pertama kali
+//	@Description	Set PIN setelah login pertama kali (has_pin: false)
+//	@Tags			Auth
+//	@Accept			json
+//	@Produce		json
+//	@Param			body	body		dto.EnterPinBody	true	"Enter PIN Request"
+//	@Success		200		{object}	pkg.BaseResponse
+//	@Failure		400		{object}	pkg.ErrorResponse
+//	@Failure		401		{object}	pkg.ErrorResponse
+//	@Security		BearerAuth
+//	@Router			/auth/enter-pin [post]
+func (a *AuthController) EnterPin(ctx *gin.Context) {
+	// Ambil claims dari token (sudah login)
+	token, _ := ctx.Get("claims")
+	claims := token.(pkg.Claims)
+
+	var body dto.EnterPinBody
+	if err := ctx.ShouldBindWith(&body, binding.JSON); err != nil {
+		log.Println("Error:", err.Error())
+		ctx.JSON(http.StatusBadRequest, pkg.ErrorResponse{
+			Message: "Bad Request",
+			Success: false,
+			Error:   err.Error(),
+		})
+		return
+	}
+
+	if err := a.authService.EnterPin(ctx.Request.Context(), claims.Id, body); err != nil {
+		log.Println("Error:", err.Error())
+
+		statusCode := http.StatusBadRequest
+		if err.Error() == "pin already set. use change pin to update" {
+			statusCode = http.StatusConflict // 409
+		}
+
+		ctx.JSON(statusCode, pkg.ErrorResponse{
+			Message: "Failed",
+			Success: false,
+			Error:   err.Error(),
+		})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, pkg.BaseResponse{
+		Message: "PIN has been set successfully",
+		Success: true,
+	})
+}

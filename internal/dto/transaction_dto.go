@@ -50,12 +50,30 @@ type TransferResponse struct {
 
 // HistoryResponse — response list history transaksi
 type HistoryResponse struct {
-	Id        int       `json:"id"`
-	Type      string    `json:"type"`
-	Amount    float64   `json:"amount"`
-	Notes     *string   `json:"notes"`
-	Status    string    `json:"status"`
-	CreatedAt time.Time `json:"created_at"`
+	Id           int           `json:"id"`
+	Type         string        `json:"type"`
+	Amount       float64       `json:"amount"`
+	Notes        *string       `json:"notes"`
+	Status       string        `json:"status"`
+	SenderInfo   *SenderInfo   `json:"sender_info"`
+	ReceiverInfo *ReceiverInfo `json:"receiver_info"`
+	CreatedAt    time.Time     `json:"created_at"`
+}
+
+// SenderInfo — info pengirim untuk history penerima
+type SenderInfo struct {
+	WalletId    int     `json:"wallet_id"`
+	Fullname    *string `json:"fullname"`
+	PhoneNumber *string `json:"phone_number"`
+	PhotoPath   *string `json:"photo_path"`
+}
+
+// ReceiverInfo — info penerima untuk history pengirim
+type ReceiverInfo struct {
+	WalletId    int     `json:"wallet_id"`
+	Fullname    *string `json:"fullname"`
+	PhoneNumber *string `json:"phone_number"`
+	PhotoPath   *string `json:"photo_path"`
 }
 
 // HistoryListResponse — response list + pagination

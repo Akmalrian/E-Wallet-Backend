@@ -175,7 +175,6 @@ func (u *UserService) UpdatePassword(ctx context.Context, id int, body dto.Updat
 
 // UpdatePin — update PIN user
 func (u *UserService) UpdatePin(ctx context.Context, id int, body dto.UpdatePinBody) error {
-
 	currentPin, err := u.userRepo.FindPinByID(ctx, id)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -183,21 +182,17 @@ func (u *UserService) UpdatePin(ctx context.Context, id int, body dto.UpdatePinB
 		}
 		return err
 	}
-
 	if currentPin != "" {
 		if !pkg.VerifyPassword(body.OldPin, currentPin) {
 			return errors.New("old pin is incorrect")
 		}
-
-		if !pkg.VerifyPassword(body.NewPin, currentPin) {
-			return errors.New("new pin must be different from old pin")
-		}
-
 	}
+
 	hashedPin, err := pkg.HashPassword(body.NewPin)
 	if err != nil {
 		return err
 	}
+
 	return u.userRepo.UpdatePin(ctx, id, hashedPin)
 }
 
@@ -212,7 +207,6 @@ func (a *AuthService) ForgotPassword(ctx context.Context, body dto.ForgotPasswor
 		return err
 	}
 
-	// Email valid → bisa lanjut ke step 2
 	return nil
 }
 

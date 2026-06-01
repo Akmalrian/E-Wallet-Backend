@@ -28,15 +28,12 @@ func (t *TransactionRepository) CreateTopup(
 	taxAmount := body.OrderAmount * 0.1
 	totalAmount := body.OrderAmount + taxAmount
 
-	// ✅ Mulai DB transaction
 	tx, err := t.db.Begin(ctx)
 	if err != nil {
 		return dto.TopupResponse{}, err
 	}
-	// ✅ Defer rollback — otomatis rollback jika ada error
 	defer tx.Rollback(ctx)
 
-	// Step 1: Insert ke tabel transactions
 	var transactionId int
 	err = tx.QueryRow(ctx, `
 		INSERT INTO transactions (user_id, type, amount, status)
@@ -47,7 +44,6 @@ func (t *TransactionRepository) CreateTopup(
 		return dto.TopupResponse{}, err
 	}
 
-	// Step 2: Insert ke tabel topup_details
 	_, err = tx.Exec(ctx, `
 		INSERT INTO topup_details (
 			transaction_id, wallet_id, payment_method_id,
@@ -59,7 +55,6 @@ func (t *TransactionRepository) CreateTopup(
 		return dto.TopupResponse{}, err
 	}
 
-	// Step 3: Tambah balance wallet
 	_, err = tx.Exec(ctx, `
 		UPDATE wallet
 		SET balance    = balance + $1,
@@ -70,12 +65,10 @@ func (t *TransactionRepository) CreateTopup(
 		return dto.TopupResponse{}, err
 	}
 
-	// ✅ Commit — semua query berhasil, simpan perubahan
 	if err := tx.Commit(ctx); err != nil {
 		return dto.TopupResponse{}, err
 	}
 
-	// Ambil nama payment method
 	var paymentName string
 	t.db.QueryRow(ctx,
 		"SELECT payment_name FROM payment_methods WHERE id = $1",
@@ -92,7 +85,7 @@ func (t *TransactionRepository) CreateTopup(
 	}, nil
 }
 
-// CreateTransfer — buat transaksi transfer dengan DB transaction
+// CreateTransfer — insert transaksi untuk pengirim DAN penerima
 func (t *TransactionRepository) CreateTransfer(
 	ctx context.Context,
 	senderUserID int,
@@ -100,7 +93,6 @@ func (t *TransactionRepository) CreateTransfer(
 	body dto.TransferBody,
 ) (dto.TransferResponse, error) {
 
-	// ✅ Mulai DB transaction
 	tx, err := t.db.Begin(ctx)
 	if err != nil {
 		return dto.TransferResponse{}, err
@@ -108,7 +100,6 @@ func (t *TransactionRepository) CreateTransfer(
 	defer tx.Rollback(ctx)
 
 	// Step 1: Cek dan lock saldo pengirim
-	// FOR UPDATE → lock row agar tidak diubah proses lain
 	var balance float64
 	err = tx.QueryRow(ctx, `
 		SELECT balance FROM wallet
@@ -119,35 +110,66 @@ func (t *TransactionRepository) CreateTransfer(
 		return dto.TransferResponse{}, err
 	}
 
-	// Step 2: Validasi saldo mencukupi
 	if balance < body.Amount {
 		return dto.TransferResponse{}, fmt.Errorf("insufficient balance")
 	}
 
-	// Step 3: Insert ke tabel transactions
-	var transactionId int
+	// Step 2: Ambil user_id penerima dari wallet id
+	var receiverUserID int
+	err = tx.QueryRow(ctx, `
+		SELECT user_id FROM wallet WHERE id = $1
+	`, body.ReceiverWalletId).Scan(&receiverUserID)
+	if err != nil {
+		return dto.TransferResponse{}, fmt.Errorf("receiver wallet not found")
+	}
+
+	// Step 3: Insert transactions untuk PENGIRIM (type: transfer)
+	var senderTransactionId int
 	err = tx.QueryRow(ctx, `
 		INSERT INTO transactions (user_id, type, amount, status)
 		VALUES ($1, 'transfer', $2, 'success')
 		RETURNING id
-	`, senderUserID, body.Amount).Scan(&transactionId)
+	`, senderUserID, body.Amount).Scan(&senderTransactionId)
 	if err != nil {
 		return dto.TransferResponse{}, err
 	}
 
-	// Step 4: Insert ke tabel transfer_details
+	// Step 4: Insert transactions untuk PENERIMA (type: receive)
+	var receiverTransactionId int
+	err = tx.QueryRow(ctx, `
+		INSERT INTO transactions (user_id, type, amount, status)
+		VALUES ($1, 'receive', $2, 'success')
+		RETURNING id
+	`, receiverUserID, body.Amount).Scan(&receiverTransactionId)
+	if err != nil {
+		return dto.TransferResponse{}, err
+	}
+
+	// Step 5: Insert transfer_details untuk transaksi pengirim
 	_, err = tx.Exec(ctx, `
 		INSERT INTO transfer_details (
 			transaction_id, sender_wallet_id,
 			receiver_wallet_id, amount, notes
 		) VALUES ($1, $2, $3, $4, $5)
-	`, transactionId, senderWalletID,
+	`, senderTransactionId, senderWalletID,
 		body.ReceiverWalletId, body.Amount, body.Notes)
 	if err != nil {
 		return dto.TransferResponse{}, err
 	}
 
-	// Step 5: Kurangi saldo pengirim
+	// Step 6: Insert transfer_details untuk transaksi penerima
+	_, err = tx.Exec(ctx, `
+		INSERT INTO transfer_details (
+			transaction_id, sender_wallet_id,
+			receiver_wallet_id, amount, notes
+		) VALUES ($1, $2, $3, $4, $5)
+	`, receiverTransactionId, senderWalletID,
+		body.ReceiverWalletId, body.Amount, body.Notes)
+	if err != nil {
+		return dto.TransferResponse{}, err
+	}
+
+	// Step 7: Kurangi saldo pengirim
 	_, err = tx.Exec(ctx, `
 		UPDATE wallet
 		SET balance    = balance - $1,
@@ -158,7 +180,7 @@ func (t *TransactionRepository) CreateTransfer(
 		return dto.TransferResponse{}, err
 	}
 
-	// Step 6: Tambah saldo penerima
+	// Step 8: Tambah saldo penerima
 	_, err = tx.Exec(ctx, `
 		UPDATE wallet
 		SET balance    = balance + $1,
@@ -169,13 +191,12 @@ func (t *TransactionRepository) CreateTransfer(
 		return dto.TransferResponse{}, err
 	}
 
-	// ✅ Commit — semua berhasil
 	if err := tx.Commit(ctx); err != nil {
 		return dto.TransferResponse{}, err
 	}
 
 	return dto.TransferResponse{
-		TransactionId:    transactionId,
+		TransactionId:    senderTransactionId,
 		ReceiverWalletId: body.ReceiverWalletId,
 		Amount:           body.Amount,
 		Notes:            body.Notes,
@@ -192,17 +213,36 @@ func (t *TransactionRepository) GetHistory(
 	offset int,
 ) ([]dto.HistoryResponse, error) {
 
-	// Build query dinamis berdasarkan filter type
 	query := `
-		SELECT tr.id, tr.type, tr.amount, tr.status, COALESCE(td.notes, 'Isi Saldo'), tr.created_at
-		FROM transactions tr
-		LEFT JOIN transfer_details td ON td.transaction_id = tr.id
-		WHERE tr.user_id = $1
-	`
+    SELECT
+      tr.id,
+      tr.type,
+      tr.amount,
+      tr.status,
+      td.notes,
+      -- Sender info (untuk type receive)
+      CASE WHEN tr.type = 'receive' THEN td.sender_wallet_id      ELSE NULL END,
+      CASE WHEN tr.type = 'receive' THEN sender_user.fullname      ELSE NULL END,
+      CASE WHEN tr.type = 'receive' THEN sender_user.phone_number  ELSE NULL END,
+      CASE WHEN tr.type = 'receive' THEN sender_user.photo_path    ELSE NULL END, -- ← tambah
+      -- Receiver info (untuk type transfer)
+      CASE WHEN tr.type = 'transfer' THEN td.receiver_wallet_id     ELSE NULL END,
+      CASE WHEN tr.type = 'transfer' THEN receiver_user.fullname     ELSE NULL END,
+      CASE WHEN tr.type = 'transfer' THEN receiver_user.phone_number ELSE NULL END,
+      CASE WHEN tr.type = 'transfer' THEN receiver_user.photo_path   ELSE NULL END, -- ← tambah
+      tr.created_at
+    FROM transactions tr
+    LEFT JOIN transfer_details td      ON td.transaction_id   = tr.id
+    LEFT JOIN wallet sender_wallet     ON sender_wallet.id    = td.sender_wallet_id
+    LEFT JOIN users  sender_user       ON sender_user.id      = sender_wallet.user_id
+    LEFT JOIN wallet receiver_wallet   ON receiver_wallet.id  = td.receiver_wallet_id
+    LEFT JOIN users  receiver_user     ON receiver_user.id    = receiver_wallet.user_id
+    WHERE tr.user_id = $1
+`
+
 	args := []interface{}{userID}
 	argIndex := 2
 
-	// Tambah filter type jika ada
 	if transType != "" {
 		query += fmt.Sprintf(" AND tr.type = $%d", argIndex)
 		args = append(args, transType)
@@ -224,16 +264,55 @@ func (t *TransactionRepository) GetHistory(
 	var transactions []dto.HistoryResponse
 	for rows.Next() {
 		var trx dto.HistoryResponse
+
+		var senderWalletId *int
+		var senderFullname *string
+		var senderPhone *string
+		var senderPhoto *string
+		var receiverWalletId *int
+		var receiverFullname *string
+		var receiverPhone *string
+		var receiverPhoto *string
+
 		if err := rows.Scan(
 			&trx.Id,
 			&trx.Type,
 			&trx.Amount,
 			&trx.Status,
 			&trx.Notes,
+			&senderWalletId,
+			&senderFullname,
+			&senderPhone,
+			&senderPhoto,
+			&receiverWalletId,
+			&receiverFullname,
+			&receiverPhone,
+			&receiverPhoto,
 			&trx.CreatedAt,
 		); err != nil {
 			return nil, err
 		}
+
+		// Isi SenderInfo untuk type receive
+		if trx.Type == "receive" && senderWalletId != nil {
+			trx.SenderInfo = &dto.SenderInfo{
+				WalletId:    *senderWalletId,
+				Fullname:    senderFullname,
+				PhoneNumber: senderPhone,
+				PhotoPath:   senderPhoto,
+			}
+		}
+
+		// ✅ Isi ReceiverInfo untuk type transfer
+		if trx.Type == "transfer" && receiverWalletId != nil {
+			trx.ReceiverInfo = &dto.ReceiverInfo{
+				WalletId:    *receiverWalletId,
+				Fullname:    receiverFullname,
+				PhoneNumber: receiverPhone,
+				PhotoPath:   receiverPhoto,
+			}
+		}
+
 		transactions = append(transactions, trx)
 	}
 

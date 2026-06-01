@@ -45,6 +45,7 @@ func InitRouter(app *gin.Engine, db *pgxpool.Pool, rdb *redis.Client) {
 
 	protected := app.Group("/")
 	protected.Use(middleware.AuthMiddleware(tokenRepo))
+	protected.POST("/auth/enter-pin", authCtrl.EnterPin)
 	protected.DELETE("/auth/logout", authCtrl.Logout)
 	protected.GET("/users/profile", userCtrl.GetProfile)
 	protected.GET("/users/dashboard", walletCtrl.GetDashboardInfo)
