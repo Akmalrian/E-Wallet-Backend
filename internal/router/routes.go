@@ -23,7 +23,11 @@ func InitRouter(app *gin.Engine, db *pgxpool.Pool, rdb *redis.Client) {
 	authService := service.NewAuthService(userRepo, tokenRepo)
 	userService := service.NewUserService(userRepo, rdb)
 	walletService := service.NewWalletService(walletRepo, rdb)
-	transactionService := service.NewTransactionService(transactionRepo, userRepo)
+	transactionService := service.NewTransactionService(
+		transactionRepo,
+		userRepo,
+		walletService,
+	)
 
 	// ── Controller ──
 	authCtrl := controller.NewAuthController(authService)

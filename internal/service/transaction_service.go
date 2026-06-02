@@ -11,43 +11,49 @@ import (
 type TransactionService struct {
 	transactionRepo *repository.TransactionRepository
 	userRepo        *repository.UserRepository
+	walletService   *WalletService // ← tambah untuk invalidate cache
 }
 
 func NewTransactionService(
 	transactionRepo *repository.TransactionRepository,
 	userRepo *repository.UserRepository,
+	walletService *WalletService, // ← tambah
 ) *TransactionService {
 	return &TransactionService{
 		transactionRepo: transactionRepo,
 		userRepo:        userRepo,
+		walletService:   walletService,
 	}
 }
 
-// CreateTopup — proses topup
+// CreateTopup — setelah berhasil, invalidate cache dashboard
 func (t *TransactionService) CreateTopup(
 	ctx context.Context,
 	userID int,
 	body dto.TopupBody,
 ) (dto.TopupResponse, error) {
-
-	// Ambil wallet user
 	walletID, _, err := t.transactionRepo.GetWalletByUserID(ctx, userID)
 	if err != nil {
 		return dto.TopupResponse{}, errors.New("wallet not found")
 	}
 
-	// Proses topup dengan DB transaction
-	return t.transactionRepo.CreateTopup(ctx, userID, walletID, body)
+	result, err := t.transactionRepo.CreateTopup(ctx, userID, walletID, body)
+	if err != nil {
+		return dto.TopupResponse{}, err
+	}
+
+	// Invalidate cache dashboard setelah topup
+	t.walletService.InvalidateDashboardCache(ctx, userID)
+
+	return result, nil
 }
 
-// CreateTransfer — proses transfer dengan validasi PIN
+// CreateTransfer — setelah berhasil, invalidate cache dashboard kedua user
 func (t *TransactionService) CreateTransfer(
 	ctx context.Context,
 	senderUserID int,
 	body dto.TransferBody,
 ) (dto.TransferResponse, error) {
-
-	// verifikasi PIN dengan hash
 	pin, err := t.userRepo.FindPinByID(ctx, senderUserID)
 	if err != nil {
 		return dto.TransferResponse{}, err
@@ -59,23 +65,26 @@ func (t *TransactionService) CreateTransfer(
 		return dto.TransferResponse{}, errors.New("invalid pin")
 	}
 
-	// Ambil wallet pengirim
 	senderWalletID, _, err := t.transactionRepo.GetWalletByUserID(ctx, senderUserID)
 	if err != nil {
 		return dto.TransferResponse{}, errors.New("sender wallet not found")
 	}
 
-	// Cek receiver wallet ada
-	_, _, err = t.transactionRepo.GetWalletByUserID(ctx, 0)
-	// langsung cek via wallet id
 	var receiverBalance float64
 	err = t.transactionRepo.CheckWalletExists(ctx, body.ReceiverWalletId, &receiverBalance)
 	if err != nil {
 		return dto.TransferResponse{}, errors.New("receiver wallet not found")
 	}
 
-	// Proses transfer dengan DB transaction
-	return t.transactionRepo.CreateTransfer(ctx, senderUserID, senderWalletID, body)
+	result, err := t.transactionRepo.CreateTransfer(ctx, senderUserID, senderWalletID, body)
+	if err != nil {
+		return dto.TransferResponse{}, err
+	}
+
+	// Invalidate cache dashboard pengirim
+	t.walletService.InvalidateDashboardCache(ctx, senderUserID)
+
+	return result, nil
 }
 
 // GetHistory — ambil history dengan pagination

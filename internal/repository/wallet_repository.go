@@ -25,7 +25,7 @@ func (w *WalletRepository) GetDashboardInfo(ctx context.Context, userID int) (dt
     SELECT COALESCE(SUM(t.amount), 0)
     FROM transactions t
     WHERE t.user_id = $1
-      AND t.type    = 'topup'
+      AND t.type    = 'receive'
       AND t.status  = 'success'
   ) AS total_income,
 
