@@ -38,7 +38,7 @@ func main() {
 	// Koneksi database
 	db, err := config.ConnectPsql()
 	if err != nil {
-		log.Printf("DB connection error. \ncause: %s", err.Error())
+		log.Fatalf("DB connection error. \ncause: %s", err.Error())
 	}
 	defer db.Close()
 	log.Println("DB Connected")
@@ -47,6 +47,7 @@ func main() {
 	rdb, err := config.ConnectRedis()
 	if err != nil {
 		log.Printf("Redis connection error. \ncause: %s", err.Error())
+		return
 	}
 	defer rdb.Close()
 	log.Println("Redis Connected")
@@ -61,8 +62,8 @@ func main() {
 	// Setup router — pass rdb
 	router.InitRouter(app, db, rdb)
 
-	app.Run(fmt.Sprintf("%s:%s",
-		os.Getenv("APP_HOST"),
-		os.Getenv("APP_PORT"),
-	))
+	log.Printf("Starting server on %s:%s...", os.Getenv("APP_HOST"), os.Getenv("APP_PORT"))
+	if err := app.Run(fmt.Sprintf(":%s", os.Getenv("APP_PORT"))); err != nil {
+		log.Fatalf("Failed to run server: %v", err)
+	}
 }
