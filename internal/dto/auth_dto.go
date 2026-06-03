@@ -27,7 +27,7 @@ type ResetPasswordBody struct {
 
 // EnterPinBody — request body untuk set PIN pertama kali
 type EnterPinBody struct {
-	Pin string `json:"pin" binding:"required,len=6"`
+	Pin string `json:"pin"`
 }
 
 // ── Response ─────────────────────────────────
