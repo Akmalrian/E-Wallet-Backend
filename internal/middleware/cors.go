@@ -13,6 +13,8 @@ func CORSMiddleware(ctx *gin.Context) {
 	allowedOrigins := []string{
 		"http://localhost:5173", // ← Vite default port
 		"http://127.0.0.1:5173",
+		"http://localhost:7000",
+		"http://localhost:200",
 	}
 
 	currentOrigin := ctx.GetHeader("Origin")
