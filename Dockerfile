@@ -13,7 +13,7 @@ RUN go build -o server ./cmd/main.go
 FROM alpine:3.22.4
 
 WORKDIR /app
-
+ 
 COPY --from=builder /app/server .
 
 # # Expose port
