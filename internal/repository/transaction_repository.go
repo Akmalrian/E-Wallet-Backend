@@ -99,7 +99,7 @@ func (t *TransactionRepository) CreateTransfer(
 	}
 	defer tx.Rollback(ctx)
 
-	// Step 1: Cek dan lock saldo pengirim
+	// Cek dan lock saldo pengirim
 	var balance float64
 	err = tx.QueryRow(ctx, `
 		SELECT balance FROM wallet
@@ -114,7 +114,7 @@ func (t *TransactionRepository) CreateTransfer(
 		return dto.TransferResponse{}, fmt.Errorf("insufficient balance")
 	}
 
-	// Step 2: Ambil user_id penerima dari wallet id
+	// Ambil user_id penerima dari wallet id
 	var receiverUserID int
 	err = tx.QueryRow(ctx, `
 		SELECT user_id FROM wallet WHERE id = $1
@@ -123,7 +123,7 @@ func (t *TransactionRepository) CreateTransfer(
 		return dto.TransferResponse{}, fmt.Errorf("receiver wallet not found")
 	}
 
-	// Step 3: Insert transactions untuk PENGIRIM (type: transfer)
+	// Insert transactions untuk PENGIRIM (type: transfer)
 	var senderTransactionId int
 	err = tx.QueryRow(ctx, `
 		INSERT INTO transactions (user_id, type, amount, status)
@@ -134,7 +134,7 @@ func (t *TransactionRepository) CreateTransfer(
 		return dto.TransferResponse{}, err
 	}
 
-	// Step 4: Insert transactions untuk PENERIMA (type: receive)
+	// Insert transactions untuk PENERIMA (type: receive)
 	var receiverTransactionId int
 	err = tx.QueryRow(ctx, `
 		INSERT INTO transactions (user_id, type, amount, status)
@@ -145,7 +145,7 @@ func (t *TransactionRepository) CreateTransfer(
 		return dto.TransferResponse{}, err
 	}
 
-	// Step 5: Insert transfer_details untuk transaksi pengirim
+	// Insert transfer_details untuk transaksi pengirim
 	_, err = tx.Exec(ctx, `
 		INSERT INTO transfer_details (
 			transaction_id, sender_wallet_id,
@@ -157,7 +157,7 @@ func (t *TransactionRepository) CreateTransfer(
 		return dto.TransferResponse{}, err
 	}
 
-	// Step 6: Insert transfer_details untuk transaksi penerima
+	// Insert transfer_details untuk transaksi penerima
 	_, err = tx.Exec(ctx, `
 		INSERT INTO transfer_details (
 			transaction_id, sender_wallet_id,
@@ -169,7 +169,7 @@ func (t *TransactionRepository) CreateTransfer(
 		return dto.TransferResponse{}, err
 	}
 
-	// Step 7: Kurangi saldo pengirim
+	// Kurangi saldo pengirim
 	_, err = tx.Exec(ctx, `
 		UPDATE wallet
 		SET balance    = balance - $1,
@@ -180,7 +180,7 @@ func (t *TransactionRepository) CreateTransfer(
 		return dto.TransferResponse{}, err
 	}
 
-	// Step 8: Tambah saldo penerima
+	// Tambah saldo penerima
 	_, err = tx.Exec(ctx, `
 		UPDATE wallet
 		SET balance    = balance + $1,
@@ -303,7 +303,7 @@ func (t *TransactionRepository) GetHistory(
 			}
 		}
 
-		// ✅ Isi ReceiverInfo untuk type transfer
+		// Isi ReceiverInfo untuk type transfer
 		if trx.Type == "transfer" && receiverWalletId != nil {
 			trx.ReceiverInfo = &dto.ReceiverInfo{
 				WalletId:    *receiverWalletId,

@@ -53,8 +53,7 @@ func (a *AuthService) Register(ctx context.Context, body dto.RegisterBody) error
 	return a.userRepo.CreateWallet(ctx, userID)
 }
 
-// Login — proses login
-// Login — tambah HasPin di response
+// Login
 func (a *AuthService) Login(ctx context.Context, body dto.LoginBody) (dto.LoginResponse, error) {
 	user, err := a.userRepo.FindByEmail(ctx, body.Email)
 	if err != nil {
@@ -79,26 +78,24 @@ func (a *AuthService) Login(ctx context.Context, body dto.LoginBody) (dto.LoginR
 		return dto.LoginResponse{}, err
 	}
 
-	// ✅ Cek apakah user sudah punya PIN
+	// Cek apakah user sudah punya PIN
 	hasPin := user.Pin != nil && *user.Pin != ""
 
 	return dto.LoginResponse{
 		Token:  token,
-		HasPin: hasPin, // ← false jika PIN kosong/null
+		HasPin: hasPin,
 		User:   toUserResponse(user),
 	}, nil
 }
 
 // EnterPin — set PIN pertama kali setelah login
 func (a *AuthService) EnterPin(ctx context.Context, userID int, body dto.EnterPinBody) error {
-	// Ambil PIN saat ini
 	pin, err := a.userRepo.FindPinByID(ctx, userID)
 	if err != nil {
 		return err
 	}
 
 	// Jika sudah punya PIN → tidak boleh pakai endpoint ini
-	// Gunakan PATCH /users/pin untuk ganti PIN
 	if pin != "" {
 		return errors.New("pin already set. use change pin to update")
 	}

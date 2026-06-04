@@ -58,26 +58,22 @@ func (w *WalletRepository) GetDashboardInfo(ctx context.Context, userID int) (dt
 func (w *WalletRepository) GetGraphData(
 	ctx context.Context,
 	userID int,
-	graphType string, // "income", "expense", "both"
+	graphType string,
 	startDate time.Time,
 	endDate time.Time,
 ) ([]dto.GraphPoint, error) {
 
 	// Build query berdasarkan graphType
-	// Selalu group by hari agar bisa lihat trend per hari
 	var incomeExpr, expenseExpr string
 
 	switch graphType {
 	case "income":
-		// Hanya tampilkan income, expense selalu 0
 		incomeExpr = `SUM(CASE WHEN type = 'topup'    AND status = 'success' THEN amount ELSE 0 END)`
 		expenseExpr = `0`
 	case "expense":
-		// Hanya tampilkan expense, income selalu 0
 		incomeExpr = `0`
 		expenseExpr = `SUM(CASE WHEN type = 'transfer' AND status = 'success' THEN amount ELSE 0 END)`
 	default:
-		// "both" → tampilkan keduanya
 		incomeExpr = `SUM(CASE WHEN type = 'topup'    AND status = 'success' THEN amount ELSE 0 END)`
 		expenseExpr = `SUM(CASE WHEN type = 'transfer' AND status = 'success' THEN amount ELSE 0 END)`
 	}

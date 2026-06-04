@@ -11,13 +11,13 @@ import (
 type TransactionService struct {
 	transactionRepo *repository.TransactionRepository
 	userRepo        *repository.UserRepository
-	walletService   *WalletService // ← tambah untuk invalidate cache
+	walletService   *WalletService
 }
 
 func NewTransactionService(
 	transactionRepo *repository.TransactionRepository,
 	userRepo *repository.UserRepository,
-	walletService *WalletService, // ← tambah
+	walletService *WalletService,
 ) *TransactionService {
 	return &TransactionService{
 		transactionRepo: transactionRepo,

@@ -35,7 +35,6 @@ func AuthMiddleware(tokenRepo *repository.TokenRepository) gin.HandlerFunc {
 
 		tokenString := parts[1]
 
-		// ✅ Cek token di Redis
 		isValid, err := tokenRepo.IsWhitelisted(ctx.Request.Context(), tokenString)
 		if err != nil || !isValid {
 			ctx.JSON(http.StatusUnauthorized, pkg.ErrorResponse{
@@ -47,7 +46,6 @@ func AuthMiddleware(tokenRepo *repository.TokenRepository) gin.HandlerFunc {
 			return
 		}
 
-		// Parse token untuk ambil claims
 		claims, err := pkg.ParseToken(tokenString)
 		if err != nil {
 			ctx.JSON(http.StatusUnauthorized, pkg.ErrorResponse{

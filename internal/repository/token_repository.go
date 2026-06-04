@@ -21,7 +21,6 @@ func tokenKey(token string) string {
 }
 
 // Add — simpan token ke Redis saat login
-// TTL = durasi expired token (otomatis terhapus saat expired)
 func (t *TokenRepository) Add(ctx context.Context, userID int, token string, expiredAt time.Time) error {
 	ttl := time.Until(expiredAt)
 
@@ -43,7 +42,6 @@ func (t *TokenRepository) IsWhitelisted(ctx context.Context, token string) (bool
 	if err != nil {
 		return false, err
 	}
-	// result = 1 jika ada, 0 jika tidak ada
 	return result == 1, nil
 }
 
