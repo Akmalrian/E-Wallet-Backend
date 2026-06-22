@@ -9,16 +9,12 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// Hanya validasi JWT signature dan expiry
-func validateToken(tokenString string) (*pkg.Claims, error) {
-	claims, err := pkg.ParseToken(tokenString)
-	if err != nil {
-		return nil, err
-	}
-	return &claims, nil
+// validasi JWT signature dan expiry
+func validateToken(tokenString string) (pkg.Claims, error) {
+	return pkg.ParseToken(tokenString)
 }
 
-// Hanya cek whitelist di Redis
+// Cek whitelist di Redis
 func checkWhitelist(ctx *gin.Context, tokenRepo *repository.TokenRepository, tokenString string) bool {
 	isWhitelisted, err := tokenRepo.IsWhitelisted(ctx.Request.Context(), tokenString)
 	if err != nil || !isWhitelisted {
@@ -27,10 +23,8 @@ func checkWhitelist(ctx *gin.Context, tokenRepo *repository.TokenRepository, tok
 	return true
 }
 
-// AuthMiddleware
 func AuthMiddleware(tokenRepo *repository.TokenRepository) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
-		// Ambil token dari header
 		authHeader := ctx.GetHeader("Authorization")
 		if authHeader == "" {
 			ctx.JSON(http.StatusUnauthorized, pkg.ErrorResponse{
@@ -55,7 +49,7 @@ func AuthMiddleware(tokenRepo *repository.TokenRepository) gin.HandlerFunc {
 
 		tokenString := parts[1]
 
-		// Validasi token dulu (signature + expiry)
+		// Validasi token dulu
 		claims, err := validateToken(tokenString)
 		if err != nil {
 			ctx.JSON(http.StatusUnauthorized, pkg.ErrorResponse{
@@ -67,18 +61,17 @@ func AuthMiddleware(tokenRepo *repository.TokenRepository) gin.HandlerFunc {
 			return
 		}
 
-		// Baru cek whitelist
+		// Cek whitelist
 		if !checkWhitelist(ctx, tokenRepo, tokenString) {
 			ctx.JSON(http.StatusUnauthorized, pkg.ErrorResponse{
 				Message: "Unauthorized",
 				Success: false,
-				Error:   "token is not active. please login again",
+				Error:   "token is not active. please login first",
 			})
 			ctx.Abort()
 			return
 		}
 
-		// Simpan claims ke context untuk dipakai controller
 		ctx.Set("claims", claims)
 		ctx.Set("token", tokenString)
 		ctx.Next()
