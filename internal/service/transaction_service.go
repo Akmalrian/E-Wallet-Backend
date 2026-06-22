@@ -3,48 +3,36 @@ package service
 import (
 	"context"
 	"errors"
-	"ewallet-backend/internal/cache"
 	"ewallet-backend/internal/dto"
 	"ewallet-backend/internal/repository"
 	"ewallet-backend/pkg"
-	"fmt"
-
-	"github.com/redis/go-redis/v9"
 )
 
 type TransactionService struct {
 	transactionRepo *repository.TransactionRepository
 	userRepo        *repository.UserRepository
-	walletRepo      *repository.WalletRepository
-	rdb             *redis.Client
+	walletService   *WalletService
 }
 
 func NewTransactionService(
 	transactionRepo *repository.TransactionRepository,
 	userRepo *repository.UserRepository,
-	walletRepo *repository.WalletRepository,
-	rdb *redis.Client,
+	walletService *WalletService,
 ) *TransactionService {
 	return &TransactionService{
 		transactionRepo: transactionRepo,
 		userRepo:        userRepo,
-		walletRepo:      walletRepo,
-		rdb:             rdb,
+		walletService:   walletService,
 	}
 }
 
-// Fungsi invalidate cache
-func (t *TransactionService) invalidateDashboardCache(ctx context.Context, userID int) {
-	cacheKey := fmt.Sprintf("user:dashboard:%d", userID)
-	cache.Delete(ctx, t.rdb, cacheKey)
-}
-
+// CreateTopup — setelah berhasil, invalidate cache dashboard
 func (t *TransactionService) CreateTopup(
 	ctx context.Context,
 	userID int,
 	body dto.TopupBody,
 ) (dto.TopupResponse, error) {
-	walletID, _, err := t.walletRepo.GetByUserID(ctx, userID)
+	walletID, _, err := t.transactionRepo.GetWalletByUserID(ctx, userID)
 	if err != nil {
 		return dto.TopupResponse{}, errors.New("wallet not found")
 	}
@@ -54,10 +42,13 @@ func (t *TransactionService) CreateTopup(
 		return dto.TopupResponse{}, err
 	}
 
-	t.invalidateDashboardCache(ctx, userID)
+	// Invalidate cache dashboard setelah topup
+	t.walletService.InvalidateDashboardCache(ctx, userID)
+
 	return result, nil
 }
 
+// CreateTransfer — setelah berhasil, invalidate cache dashboard kedua user
 func (t *TransactionService) CreateTransfer(
 	ctx context.Context,
 	senderUserID int,
@@ -74,15 +65,14 @@ func (t *TransactionService) CreateTransfer(
 		return dto.TransferResponse{}, errors.New("invalid pin")
 	}
 
-	senderWalletID, _, err := t.walletRepo.GetByUserID(ctx, senderUserID)
+	senderWalletID, _, err := t.transactionRepo.GetWalletByUserID(ctx, senderUserID)
 	if err != nil {
 		return dto.TransferResponse{}, errors.New("sender wallet not found")
 	}
 
 	var receiverBalance float64
-	if err := t.transactionRepo.CheckWalletExists(
-		ctx, body.ReceiverWalletId, &receiverBalance,
-	); err != nil {
+	err = t.transactionRepo.CheckWalletExists(ctx, body.ReceiverWalletId, &receiverBalance)
+	if err != nil {
 		return dto.TransferResponse{}, errors.New("receiver wallet not found")
 	}
 
@@ -91,10 +81,13 @@ func (t *TransactionService) CreateTransfer(
 		return dto.TransferResponse{}, err
 	}
 
-	t.invalidateDashboardCache(ctx, senderUserID)
+	// Invalidate cache dashboard pengirim
+	t.walletService.InvalidateDashboardCache(ctx, senderUserID)
+
 	return result, nil
 }
 
+// GetHistory — ambil history dengan pagination
 func (t *TransactionService) GetHistory(
 	ctx context.Context,
 	userID int,
@@ -102,6 +95,7 @@ func (t *TransactionService) GetHistory(
 	page int,
 	limit int,
 ) (dto.HistoryListResponse, error) {
+
 	if page <= 0 {
 		page = 1
 	}
@@ -114,6 +108,7 @@ func (t *TransactionService) GetHistory(
 	if err != nil {
 		return dto.HistoryListResponse{}, err
 	}
+
 	if transactions == nil {
 		transactions = []dto.HistoryResponse{}
 	}
@@ -124,6 +119,7 @@ func (t *TransactionService) GetHistory(
 	}
 
 	totalPages := (total + limit - 1) / limit
+
 	return dto.HistoryListResponse{
 		Transactions: transactions,
 		Meta: dto.PaginationMeta{

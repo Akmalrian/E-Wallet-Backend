@@ -13,7 +13,6 @@ import (
 
 func InitRouter(app *gin.Engine, db *pgxpool.Pool, rdb *redis.Client) {
 	app.Static("/uploads", "./public/uploads")
-
 	// ── Repository ──
 	userRepo := repository.NewUserRepository(db)
 	tokenRepo := repository.NewTokenRepository(rdb)
@@ -27,8 +26,7 @@ func InitRouter(app *gin.Engine, db *pgxpool.Pool, rdb *redis.Client) {
 	transactionService := service.NewTransactionService(
 		transactionRepo,
 		userRepo,
-		walletRepo,
-		rdb,
+		walletService,
 	)
 
 	// ── Controller ──
@@ -40,8 +38,29 @@ func InitRouter(app *gin.Engine, db *pgxpool.Pool, rdb *redis.Client) {
 	// ── Global Middleware ──
 	app.Use(middleware.CORSMiddleware)
 
-	// ── Setup Routes per grup ──
-	SetupAuthRoutes(app, authCtrl, tokenRepo)
-	SetupUserRoutes(app, userCtrl, walletCtrl, tokenRepo)
-	SetupTransactionRoutes(app, transactionCtrl, tokenRepo)
+	// ── Routes ──
+
+	auth := app.Group("/auth")
+
+	auth.POST("/register", authCtrl.Register)
+	auth.POST("/login", authCtrl.Login)
+	auth.POST("/forgot-password", authCtrl.ForgotPassword)
+	auth.POST("/reset-password", authCtrl.ResetPassword)
+
+	protected := app.Group("/")
+	protected.Use(middleware.AuthMiddleware(tokenRepo))
+	protected.POST("/auth/enter-pin", authCtrl.EnterPin)
+	protected.DELETE("/auth/logout", authCtrl.Logout)
+	protected.GET("/users/profile", userCtrl.GetProfile)
+	protected.GET("/users/dashboard", walletCtrl.GetDashboardInfo)
+	protected.GET("/users/dashboard/graph", walletCtrl.GetGraphData)
+	protected.GET("/users/receiver", userCtrl.FindReceivers)
+	protected.PATCH("/users/profile", userCtrl.UpdateProfile)
+	protected.PATCH("/users/password", userCtrl.UpdatePassword)
+	protected.PATCH("/users/pin", userCtrl.UpdatePin)
+	protected.POST("/users/pin/check", userCtrl.CheckPin)
+
+	protected.POST("/transactions/topup", transactionCtrl.CreateTopup)
+	protected.POST("/transactions/transfer", transactionCtrl.CreateTransfer)
+	protected.GET("/transactions/history", transactionCtrl.GetHistory)
 }
