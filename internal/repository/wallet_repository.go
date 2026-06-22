@@ -124,3 +124,15 @@ func (t *TransactionRepository) CheckWalletExists(
 		walletID,
 	).Scan(balance)
 }
+
+// GetByUserID — ambil wallet berdasarkan user ID
+func (w *WalletRepository) GetByUserID(ctx context.Context, userID int) (int, float64, error) {
+	sql := `SELECT id, balance FROM wallet WHERE user_id = $1`
+	var walletID int
+	var balance float64
+	err := w.db.QueryRow(ctx, sql, userID).Scan(&walletID, &balance)
+	if err != nil {
+		return 0, 0, err
+	}
+	return walletID, balance, nil
+}
