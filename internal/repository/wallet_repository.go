@@ -68,13 +68,13 @@ func (w *WalletRepository) GetGraphData(
 
 	switch graphType {
 	case "income":
-		incomeExpr = `SUM(CASE WHEN type = 'topup'    AND status = 'success' THEN amount ELSE 0 END)`
+		incomeExpr = `SUM(CASE WHEN type = 'receive'    AND status = 'success' THEN amount ELSE 0 END)`
 		expenseExpr = `0`
 	case "expense":
 		incomeExpr = `0`
 		expenseExpr = `SUM(CASE WHEN type = 'transfer' AND status = 'success' THEN amount ELSE 0 END)`
 	default:
-		incomeExpr = `SUM(CASE WHEN type = 'topup'    AND status = 'success' THEN amount ELSE 0 END)`
+		incomeExpr = `SUM(CASE WHEN type = 'receive'    AND status = 'success' THEN amount ELSE 0 END)`
 		expenseExpr = `SUM(CASE WHEN type = 'transfer' AND status = 'success' THEN amount ELSE 0 END)`
 	}
 
