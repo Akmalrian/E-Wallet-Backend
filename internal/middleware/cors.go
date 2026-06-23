@@ -14,10 +14,7 @@ func CORSMiddleware(ctx *gin.Context) {
 		"http://localhost:5173",
 		"http://127.0.0.1:5173",
 		"http://localhost:9000",
-		"http://127.0.0.1:9000",
 		"http://localhost:200",
-		"http://localhost:80",
-		"http://localhost",
 	}
 
 	currentOrigin := ctx.GetHeader("Origin")
